@@ -1,8 +1,4 @@
 
-import React from 'react';
-import { User, AppView } from '../types';
-import { MOCK_VIDEOS } from '../constants';
-
 import React, { useState } from 'react';
 import { User, AppView } from '../types';
 import { MOCK_VIDEOS } from '../constants';

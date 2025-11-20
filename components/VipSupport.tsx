@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { collection, addDoc, query, orderBy, onSnapshot, db, auth } from '../services/firebase';
 
 interface Message {
-  id: number;
+  id: string;
   text: string;
   sender: 'user' | 'agent';
-  time: string;
+  time: any;
+  createdAt: any;
 }
 
 interface VipSupportProps {
@@ -13,11 +15,42 @@ interface VipSupportProps {
 }
 
 const VipSupport: React.FC<VipSupportProps> = ({ onBack }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: "Welcome to the Blueberry VIP Concierge. My name is Sarah. How can I assist you with your premium experience today?", sender: 'agent', time: 'Now' }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const user = auth.currentUser;
+
+  useEffect(() => {
+      if (!user) return;
+
+      const q = query(collection(db, "support_tickets", user.uid, "messages"), orderBy("createdAt", "asc"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const msgs: Message[] = snapshot.docs.map(doc => {
+              const data = doc.data();
+              return {
+                  id: doc.id,
+                  text: data.text,
+                  sender: data.sender,
+                  time: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleTimeString() : 'Now',
+                  createdAt: data.createdAt
+              };
+          });
+
+          if (msgs.length === 0) {
+              // Initial greeting
+               setMessages([{
+                   id: 'welcome',
+                   text: "Welcome to the Blueberry VIP Concierge. My name is Sarah. How can I assist you with your premium experience today?",
+                   sender: 'agent',
+                   time: 'Now',
+                   createdAt: new Date()
+                }]);
+          } else {
+              setMessages(msgs);
+          }
+      });
+      return () => unsubscribe();
+  }, [user]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -25,29 +58,31 @@ const VipSupport: React.FC<VipSupportProps> = ({ onBack }) => {
 
   useEffect(scrollToBottom, [messages]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !user) return;
 
-    const userMsg: Message = {
-      id: Date.now(),
-      text: input,
-      sender: 'user',
-      time: 'Now'
-    };
-    setMessages(prev => [...prev, userMsg]);
+    const text = input;
     setInput('');
 
-    // Simulate agent response
-    setTimeout(() => {
-      const agentMsg: Message = {
-        id: Date.now() + 1,
-        text: "Thank you for your request. I am looking into that for you immediately. As a VIP member, your inquiry has top priority.",
-        sender: 'agent',
-        time: 'Now'
-      };
-      setMessages(prev => [...prev, agentMsg]);
-    }, 1500);
+    try {
+        await addDoc(collection(db, "support_tickets", user.uid, "messages"), {
+            text: text,
+            sender: 'user',
+            createdAt: new Date()
+        });
+
+        // Mock auto-response if it's a demo
+        setTimeout(async () => {
+            await addDoc(collection(db, "support_tickets", user.uid, "messages"), {
+                text: "Thank you for your request. I am looking into that for you immediately. As a VIP member, your inquiry has top priority.",
+                sender: 'agent',
+                createdAt: new Date()
+            });
+        }, 2000);
+    } catch (e) {
+        console.error("Error sending message", e);
+    }
   };
 
   return (

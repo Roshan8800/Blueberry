@@ -1,7 +1,29 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics, logEvent } from "firebase/analytics";
-import { getFirestore, collection, getDocs } from "firebase/firestore";
-import { Video } from "../types";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where
+} from "firebase/firestore";
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
+} from "firebase/auth";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { Video, Model, CommunityPost } from "../types";
+import { MOCK_VIDEOS, MOCK_MODELS, MOCK_POSTS } from "../constants";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBUv0KXB8-2nD9ecOpu1NAarMxrCVauU9I",
@@ -17,124 +39,128 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Defensive initialization for Analytics and Firestore
-let analytics = null;
+// Services
+let analytics: any = null;
 try {
   analytics = getAnalytics(app);
 } catch (e) {
   console.warn("Firebase Analytics failed to initialize:", e);
 }
 
-let db = null;
-try {
-  db = getFirestore(app);
-} catch (e) {
-  console.error("Firebase Firestore failed to initialize:", e);
-}
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const storage = getStorage(app);
+export const googleProvider = new GoogleAuthProvider();
+
+export {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  collection,
+  addDoc,
+  doc,
+  updateDoc,
+  deleteDoc,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  logEvent,
+  analytics
+};
+
+/**
+ * Seeding Utility: Checks if collections are empty and populates them with initial data.
+ */
+export const seedDatabaseIfEmpty = async () => {
+  if (!db) return;
+
+  try {
+    // 1. Seed Videos
+    const videosRef = collection(db, "videos");
+    const videoSnap = await getDocs(videosRef);
+    if (videoSnap.empty) {
+      console.log("Seeding Videos...");
+      for (const video of MOCK_VIDEOS) {
+        await setDoc(doc(db, "videos", video.id), video);
+      }
+    }
+
+    // 2. Seed Models
+    const modelsRef = collection(db, "models");
+    const modelSnap = await getDocs(modelsRef);
+    if (modelSnap.empty) {
+      console.log("Seeding Models...");
+      for (const model of MOCK_MODELS) {
+         await setDoc(doc(db, "models", model.id), model);
+      }
+    }
+
+    // 3. Seed Posts
+    const postsRef = collection(db, "community_posts");
+    const postSnap = await getDocs(postsRef);
+    if (postSnap.empty) {
+       console.log("Seeding Posts...");
+       for (const post of MOCK_POSTS) {
+          await setDoc(doc(db, "community_posts", post.id), post);
+       }
+    }
+
+    console.log("Database check/seed complete.");
+  } catch (e) {
+    console.error("Error seeding database:", e);
+  }
+};
 
 /**
  * Fetches all videos from the 'videos' collection in Firestore.
- * Maps specific database fields (pornstar, catagory, iframe code, etc.) to the application's Video type.
  */
 export const fetchVideos = async (): Promise<Video[]> => {
-  if (!db) {
-    console.warn("Firestore is not available. Returning empty video list.");
-    return [];
-  }
+  if (!db) return [];
 
   try {
     const querySnapshot = await getDocs(collection(db, "videos"));
-    if (querySnapshot.empty) {
-        console.warn("No videos found in 'videos' collection.");
-        return [];
-    }
     return querySnapshot.docs.map(doc => {
       const data = doc.data();
-      
-      // Handle Views: Ensure it's a string.
-      let safeViews = "0";
-      if (data.views !== undefined && data.views !== null) {
-        safeViews = String(data.views);
-      } else {
-         // Fallback: estimate views based on thumbs if actual views missing
-         // Check both 'thumsup' (from your data) and 'thumbsup'
-         const up = Number(data.thumsup || data.thumbsup || 0);
-         const down = Number(data.thumbsdown || 0);
-         if (up + down > 0) safeViews = String((up + down) * 12); 
-      }
-
-      // Handle Rating: Calculate from thumbs if not provided explicitly
-      let safeRating = 95;
-      if (typeof data.rating === 'number') {
-        safeRating = data.rating;
-      } else if (data.rating && !isNaN(Number(data.rating))) {
-        safeRating = Number(data.rating);
-      } else {
-         const up = Number(data.thumsup || data.thumbsup || 0);
-         const down = Number(data.thumbsdown || 0);
-         const total = up + down;
-         if (total > 0) {
-            safeRating = Math.round((up / total) * 100);
-         }
-      }
-
-      // Handle Iframe/Embed Code robustly
-      // Specific field name 'iframe code'
-      let embedUrl = "";
-      const rawIframe = data['iframe code'] || data.embedUrl;
-      if (rawIframe) {
-        const stringIframe = String(rawIframe);
-        if (stringIframe.includes('<iframe')) {
-            // Try to extract src from iframe tag
-            const match = stringIframe.match(/src=["']([^"']+)["']/);
-            embedUrl = match ? match[1] : "";
-        } else {
-            // Assuming it's a direct link
-            embedUrl = stringIframe;
-        }
-      }
-
-      // Map Firestore fields to Video interface
-      // We check multiple possible field names to be robust against DB variations
-      // Using String() constructor prevents 'undefined' values from causing issues or circular refs
       return {
         id: doc.id,
-        
-        // Title
-        title: String(data.title || "Untitled Video"),
-        
-        // Thumbnail: Prioritize 'thumbnail URL' and 'screenshot URL'
-        thumbnail: String(data['thumbnail URL'] || data['screenshot URL'] || data.thumbnail || "https://picsum.photos/seed/default/600/400"),
-        
-        // Duration
+        title: String(data.title || "Untitled"),
+        thumbnail: String(data.thumbnail || "https://picsum.photos/seed/default/600/400"),
         duration: String(data.duration || "00:00"),
-        
-        // Views
-        views: safeViews,
-        
-        // Author: Prioritize 'pornstar' and 'perform' (common in adult datasets)
-        author: String(data.pornstar || data.perform || data.author || "Unknown Star"),
-        
-        // Category: Prioritize 'catagory' (common typo in datasets)
-        category: String(data.catagory || data.category || "Uncategorized"),
-        
-        // Embed
-        embedUrl: embedUrl,
-        
-        // Description
+        views: String(data.views || "0"),
+        author: String(data.author || "Unknown"),
+        category: String(data.category || "Uncategorized"),
+        embedUrl: String(data.embedUrl || ""),
         description: String(data.description || ""),
-        
-        // Rating
-        rating: safeRating,
-        
-        // Tags
-        tags: Array.isArray(data.tags) ? data.tags.map(String) : []
+        rating: Number(data.rating || 0),
+        tags: Array.isArray(data.tags) ? data.tags : []
       } as Video;
     });
   } catch (error) {
-    console.error("Error fetching videos from Firestore:", error);
+    console.error("Error fetching videos:", error);
     return [];
   }
 };
 
-export { app, analytics, logEvent, db };
+export const fetchModels = async (): Promise<Model[]> => {
+    if (!db) return [];
+    try {
+        const snap = await getDocs(collection(db, "models"));
+        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Model));
+    } catch (e) {
+        console.error("Error fetching models", e);
+        return [];
+    }
+};
+
+export const fetchPosts = async (): Promise<CommunityPost[]> => {
+    if (!db) return [];
+    try {
+        const snap = await getDocs(collection(db, "community_posts"));
+        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CommunityPost));
+    } catch (e) {
+        console.error("Error fetching posts", e);
+        return [];
+    }
+};

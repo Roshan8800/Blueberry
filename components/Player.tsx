@@ -129,9 +129,10 @@ const Player: React.FC<PlayerProps> = ({
   };
 
   // Iframe handling
-  const isIframeEmbed = video.embedUrl && (video.embedUrl.includes('http') || video.embedUrl.includes('<iframe'));
+  const isIframeEmbed = video.embedUrl && (video.embedUrl.includes('<iframe') || (video.embedUrl.includes('youtube.com') || video.embedUrl.includes('vimeo.com')));
   const iframeSrc = video.embedUrl; 
-  const DEMO_VIDEO_SRC = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+  // Use the embedUrl as source if it's a direct link (mp4, etc), otherwise fall back to demo
+  const videoSrc = (video.embedUrl && !isIframeEmbed && video.embedUrl.startsWith('http')) ? video.embedUrl : "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
   // Safe View Count Parsing
   const getRawViewCount = (val: string | number | undefined) => {
@@ -436,7 +437,7 @@ const Player: React.FC<PlayerProps> = ({
              ) : (
                  <video 
                     ref={videoRef}
-                    src={DEMO_VIDEO_SRC}
+                    src={videoSrc}
                     poster={video.thumbnail}
                     className="w-full h-full object-contain bg-black"
                     style={{ 

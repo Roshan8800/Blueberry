@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
-import { AppView } from '../types';
-
 import { AppView, User, UserRole } from '../types';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, auth } from '../services/firebase';
 
 interface AuthPagesProps {
   view: AppView;
@@ -23,37 +22,40 @@ const AuthPages: React.FC<AuthPagesProps> = ({ view, setView, onUltraLogin, onLo
     setError('');
     setIsLoading(true);
 
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsLoading(false);
-
-    if (view === AppView.LOGIN) {
-      // Basic validation (mock)
-      if (email && password) {
+    try {
+      if (view === AppView.LOGIN) {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        // In a real app, you'd fetch the user profile from Firestore here
         if (onLoginSuccess) {
              onLoginSuccess({
-                 username: email.split('@')[0] || 'User',
+                 id: user.uid,
+                 username: user.email?.split('@')[0] || 'User',
                  role: UserRole.USER,
-                 plan: 'premium'
+                 plan: 'premium' // Default for now, should come from DB
              });
         }
         setView(AppView.HOME);
-      } else {
-        setError('Please fill in all fields');
-      }
-    } else if (view === AppView.REGISTER) {
-      if (email && password && username) {
+
+      } else if (view === AppView.REGISTER) {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          // Here you would create the user document in Firestore
           if (onLoginSuccess) {
               onLoginSuccess({
+                  id: user.uid,
                   username: username,
                   role: UserRole.USER,
                   plan: 'free'
               });
           }
           setView(AppView.HOME);
-      } else {
-        setError('Please fill in all fields');
       }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 

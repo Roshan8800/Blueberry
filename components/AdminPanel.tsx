@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { MOCK_VIDEOS } from '../constants';
+import React, { useState, useEffect } from 'react';
 import { Video } from '../types';
 import { generateVideoDescription } from '../services/geminiService';
+import { fetchVideos, deleteDoc, doc, db, addDoc, collection } from '../services/firebase';
 
 const AdminPanel: React.FC = () => {
-  const [videos, setVideos] = useState<Video[]>(MOCK_VIDEOS);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -12,6 +12,14 @@ const AdminPanel: React.FC = () => {
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [newVideoData, setNewVideoData] = useState({ title: '', author: '', category: 'Trending' });
+
+  useEffect(() => {
+    const load = async () => {
+        const vids = await fetchVideos();
+        setVideos(vids);
+    };
+    load();
+  }, []);
 
   // Bulk Action Handlers
   // Filter videos based on search query
@@ -35,15 +43,21 @@ const AdminPanel: React.FC = () => {
     setSelectedIds(newSet);
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (window.confirm(`Are you sure you want to delete ${selectedIds.size} videos?`)) {
+      // Delete from Firestore
+      for (const id of selectedIds) {
+          await deleteDoc(doc(db, "videos", id));
+      }
+      // Update Local State
       setVideos(videos.filter(v => !selectedIds.has(v.id)));
       setSelectedIds(new Set());
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if(window.confirm("Are you sure you want to delete this video?")) {
+      await deleteDoc(doc(db, "videos", id));
       setVideos(videos.filter(v => v.id !== id));
     }
   };
@@ -63,10 +77,10 @@ const AdminPanel: React.FC = () => {
     setIsAiLoading(false);
   };
 
-  const handleSubmitNewVideo = (e: React.FormEvent) => {
+  const handleSubmitNewVideo = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newVideo: Video = {
-      id: `v${Date.now()}`,
+
+    const newVideo = {
       title: newVideoData.title,
       author: newVideoData.author,
       category: newVideoData.category,
@@ -78,9 +92,16 @@ const AdminPanel: React.FC = () => {
       rating: 0,
       tags: ['new', 'upload']
     };
-    setVideos([newVideo, ...videos]);
-    setShowModal(false);
-    setNewVideoData({ title: '', author: '', category: 'Trending' });
+
+    try {
+        const ref = await addDoc(collection(db, "videos"), newVideo);
+        setVideos([{ id: ref.id, ...newVideo } as Video, ...videos]);
+        setShowModal(false);
+        setNewVideoData({ title: '', author: '', category: 'Trending' });
+    } catch (e) {
+        console.error("Error adding video", e);
+        alert("Failed to add video");
+    }
   };
 
   return (

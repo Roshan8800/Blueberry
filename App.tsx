@@ -26,7 +26,7 @@ import { EmptyView, ErrorView } from './components/StateViews';
 import { MOCK_VIDEOS, DEMO_ADMIN, DEVELOPERS, MOCK_MODELS, MOCK_POSTS, DEMO_BLUEBERRY_USER } from './constants';
 import { Video, AppView, User, Model, UserRole } from './types';
 import { getSmartSearchSuggestions } from './services/geminiService';
-import { analytics, logEvent, fetchVideos } from './services/firebase';
+import { analytics, logEvent, fetchVideos, seedDatabaseIfEmpty, auth, onAuthStateChanged, fetchModels } from './services/firebase';
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
@@ -39,6 +39,7 @@ const App: React.FC = () => {
 
   // --- Data State ---
   const [allVideos, setAllVideos] = useState<Video[]>([]);
+  const [allModels, setAllModels] = useState<Model[]>([]);
   const [isLoadingVideos, setIsLoadingVideos] = useState(true);
 
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
@@ -72,19 +73,47 @@ const App: React.FC = () => {
 
   // --- Fetch Videos from Firestore ---
   useEffect(() => {
-    const loadVideos = async () => {
+    const loadData = async () => {
       setIsLoadingVideos(true);
+      await seedDatabaseIfEmpty();
+
       const dbVideos = await fetchVideos();
+      const dbModels = await fetchModels();
+
       if (dbVideos.length > 0) {
         setAllVideos(dbVideos);
       } else {
-        // Fallback to MOCK_VIDEOS only if DB is empty to prevent empty UI during demo
-        console.log("Database empty or error, using mocks.");
-        setAllVideos(MOCK_VIDEOS);
+         // Fallback if fetch failed
+         setAllVideos(MOCK_VIDEOS);
       }
+
+      if (dbModels.length > 0) {
+        setAllModels(dbModels);
+      } else {
+        setAllModels(MOCK_MODELS);
+      }
+
       setIsLoadingVideos(false);
     };
-    loadVideos();
+    loadData();
+
+    // Auth Listener
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser({
+          id: user.uid,
+          username: user.email?.split('@')[0] || 'User',
+          role: UserRole.USER,
+          plan: 'premium', // Default
+          avatar: user.photoURL || undefined
+        });
+      } else {
+        // Don't auto-logout demo users for now if they are mock-logged in
+        // But strictly for Firebase auth, we should set null
+        // setCurrentUser(null);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   // --- Browser History Sync ---
@@ -593,7 +622,7 @@ const App: React.FC = () => {
               <h1 className="text-3xl font-bold">Top Models & Stars</h1>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-              {MOCK_MODELS.map(model => (
+              {allModels.map(model => (
                 <ModelCard 
                   key={model.id} 
                   model={model} 

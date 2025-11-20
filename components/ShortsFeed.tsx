@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MOCK_VIDEOS } from '../constants';
 import { EmptyView } from './StateViews';
+import { fetchVideos } from '../services/firebase';
+import { Video } from '../types';
 
 interface ShortsFeedProps {
   isUltra?: boolean;
@@ -12,9 +14,16 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({ isUltra = false, onBack }) => {
   // Need full screen container for intersection observer
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [shorts, setShorts] = useState<Video[]>([]);
 
-  // Using MOCK_VIDEOS to simulate shorts
-  const shorts = MOCK_VIDEOS.map((v, i) => ({...v, id: `short-${i}`}));
+  useEffect(() => {
+    const loadShorts = async () => {
+        const vids = await fetchVideos();
+        // Filter for short content or just shuffle/slice
+        setShorts(vids.length > 0 ? vids : MOCK_VIDEOS);
+    };
+    loadShorts();
+  }, []);
 
   // Simple like state logic (local only)
   const [likes, setLikes] = useState<Record<string, boolean>>({});

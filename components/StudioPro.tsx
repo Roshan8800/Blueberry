@@ -1,11 +1,39 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { fetchVideos } from '../services/firebase';
+import { Video } from '../types';
 
 interface StudioProProps {
   onBack: () => void;
 }
 
 const StudioPro: React.FC<StudioProProps> = ({ onBack }) => {
+  const [stats, setStats] = useState({ revenue: 0, views: 0, subs: 0 });
+  const [recentUploads, setRecentUploads] = useState<Video[]>([]);
+
+  useEffect(() => {
+      const loadStats = async () => {
+          const vids = await fetchVideos();
+          const totalViews = vids.reduce((acc, v) => {
+              // Parse views: "1.2M" -> 1200000, "15k" -> 15000, "123" -> 123
+              let count = 0;
+              const s = v.views.toLowerCase();
+              if (s.includes('m')) count = parseFloat(s) * 1000000;
+              else if (s.includes('k')) count = parseFloat(s) * 1000;
+              else count = parseInt(s) || 0;
+              return acc + count;
+          }, 0);
+
+          setStats({
+              revenue: totalViews * 0.005, // Mock CPM
+              views: totalViews,
+              subs: Math.floor(totalViews * 0.01)
+          });
+          setRecentUploads(vids.slice(0, 5));
+      };
+      loadStats();
+  }, []);
+
   return (
     <div className="p-6 max-w-[1600px] mx-auto animate-in fade-in zoom-in duration-300">
         <div className="flex items-center justify-between mb-8">
@@ -39,9 +67,9 @@ const StudioPro: React.FC<StudioProProps> = ({ onBack }) => {
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {[
-                { title: 'Total Revenue', value: '$12,450.00', change: '+8.2%', icon: 'fa-sack-dollar', color: 'text-green-400' },
-                { title: 'Live Viewers', value: '1.2K', change: '+15%', icon: 'fa-users', color: 'text-red-400' },
-                { title: 'Subscribers', value: '85.4K', change: '+240 this week', icon: 'fa-heart', color: 'text-pink-400' },
+                { title: 'Total Revenue', value: `$${stats.revenue.toFixed(2)}`, change: '+8.2%', icon: 'fa-sack-dollar', color: 'text-green-400' },
+                { title: 'Total Views', value: stats.views.toLocaleString(), change: '+15%', icon: 'fa-eye', color: 'text-blue-400' },
+                { title: 'Subscribers', value: stats.subs.toLocaleString(), change: '+240 this week', icon: 'fa-heart', color: 'text-pink-400' },
                 { title: 'Stream Health', value: 'Excellent', change: '1080p @ 60fps', icon: 'fa-signal', color: 'text-cyan-400' },
             ].map((stat, idx) => (
                 <div key={idx} className="bg-[#0f172a] border border-indigo-900/30 rounded-2xl p-6 relative overflow-hidden group hover:border-indigo-500/50 transition-colors">
@@ -104,17 +132,17 @@ const StudioPro: React.FC<StudioProProps> = ({ onBack }) => {
             <div className="bg-[#0f172a] border border-indigo-900/30 rounded-2xl p-6">
                <h3 className="text-white font-bold mb-6">Recent Uploads</h3>
                <div className="space-y-4">
-                  {[1, 2, 3, 4].map((item) => (
-                     <div key={item} className="flex gap-3 items-center p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                  {recentUploads.map((video) => (
+                     <div key={video.id} className="flex gap-3 items-center p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
                         <div className="w-16 h-10 bg-gray-800 rounded overflow-hidden relative">
-                           <img src={`https://picsum.photos/seed/up${item}/100/60`} className="w-full h-full object-cover" />
+                           <img src={video.thumbnail} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
-                           <h4 className="text-sm font-medium text-white truncate">Exclusive Behind the Scenes Part {item}</h4>
+                           <h4 className="text-sm font-medium text-white truncate">{video.title}</h4>
                            <div className="flex items-center gap-2 text-xs text-gray-400">
                               <span className="text-green-400">Monetized</span>
                               <span>•</span>
-                              <span>{item * 12}K views</span>
+                              <span>{video.views} views</span>
                            </div>
                         </div>
                         <button className="text-gray-500 hover:text-white opacity-0 group-hover:opacity-100">
