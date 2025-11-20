@@ -34,6 +34,8 @@ const App: React.FC = () => {
   
   // --- Global Navigation History ---
   const [viewHistory, setViewHistory] = useState<AppView[]>([]);
+  // Track the current history index to determine navigation direction
+  const historyIndexRef = useRef<number>(0);
 
   // --- Data State ---
   const [allVideos, setAllVideos] = useState<Video[]>([]);
@@ -87,22 +89,45 @@ const App: React.FC = () => {
 
   // --- Browser History Sync ---
   useEffect(() => {
+    // Initialize history state on mount if needed
+    if (!window.history.state) {
+      window.history.replaceState({ view: AppView.LANDING, index: 0 }, '', window.location.search);
+      historyIndexRef.current = 0;
+    } else if (typeof window.history.state.index === 'number') {
+      historyIndexRef.current = window.history.state.index;
+    }
+
     const handlePopState = (event: PopStateEvent) => {
       if (event.state && event.state.view) {
-        // Browser back button pressed
+        const newIndex = event.state.index ?? 0;
+        const currentIndex = historyIndexRef.current;
+
+        // Determine direction
+        if (newIndex < currentIndex) {
+          // Back
+          const delta = currentIndex - newIndex;
+          setViewHistory(prev => {
+            if (prev.length >= delta) return prev.slice(0, -delta);
+            return []; // Safety fallback
+          });
+        } else if (newIndex > currentIndex) {
+          // Forward
+          setViewHistory(prev => [...prev, currentView]);
+        }
+
+        historyIndexRef.current = newIndex;
         setCurrentView(event.state.view);
-        // We pop from our internal stack to keep it in sync
-        setViewHistory(prev => prev.slice(0, -1));
       } else {
         // If state is null (e.g. initial load), default to Landing
         setCurrentView(AppView.LANDING);
         setViewHistory([]);
+        historyIndexRef.current = 0;
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [currentView]);
 
   // --- Analytics Logging ---
   useEffect(() => {
@@ -125,8 +150,10 @@ const App: React.FC = () => {
     // Update state
     setCurrentView(newView);
     
-    // Push to browser history
-    window.history.pushState({ view: newView }, '', `?view=${newView}`);
+    // Increment index and push to browser history
+    const newIndex = historyIndexRef.current + 1;
+    historyIndexRef.current = newIndex;
+    window.history.pushState({ view: newView, index: newIndex }, '', `?view=${newView}`);
     
     // Scroll to top
     window.scrollTo(0, 0);
@@ -135,19 +162,13 @@ const App: React.FC = () => {
   const handleBack = () => {
     if (viewHistory.length === 0) {
         // If no history, default to home or landing depending on auth
-        if (currentUser) navigate(AppView.HOME);
-        else navigate(AppView.LANDING);
+        if (currentUser && currentView !== AppView.HOME) navigate(AppView.HOME);
+        else if (!currentUser && currentView !== AppView.LANDING) navigate(AppView.LANDING);
         return;
     }
 
-    const newHistory = [...viewHistory];
-    const prevView = newHistory.pop(); // Remove current
-    
-    setViewHistory(newHistory);
-    
-    if (prevView) {
-        setCurrentView(prevView);
-    }
+    // Use browser back to ensure synchronization
+    window.history.back();
   };
 
   // Load Persisted Data
