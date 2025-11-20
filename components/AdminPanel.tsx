@@ -5,6 +5,7 @@ import { generateVideoDescription } from '../services/geminiService';
 
 const AdminPanel: React.FC = () => {
   const [videos, setVideos] = useState<Video[]>(MOCK_VIDEOS);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   
@@ -13,9 +14,15 @@ const AdminPanel: React.FC = () => {
   const [newVideoData, setNewVideoData] = useState({ title: '', author: '', category: 'Trending' });
 
   // Bulk Action Handlers
+  // Filter videos based on search query
+  const filteredVideos = videos.filter(video =>
+    video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    video.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedIds(new Set(videos.map(v => v.id)));
+      setSelectedIds(new Set(filteredVideos.map(v => v.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -137,6 +144,8 @@ const AdminPanel: React.FC = () => {
           <div className="relative w-full sm:w-64">
             <input 
               type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search filenames..." 
               className="w-full bg-black/20 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors"
             />
@@ -176,7 +185,7 @@ const AdminPanel: React.FC = () => {
                   <input 
                     type="checkbox" 
                     onChange={handleSelectAll}
-                    checked={selectedIds.size === videos.length && videos.length > 0}
+                    checked={selectedIds.size === filteredVideos.length && filteredVideos.length > 0}
                     className="rounded border-gray-700 bg-gray-800 text-brand-600 focus:ring-0 focus:ring-offset-0"
                   />
                 </th>
@@ -188,7 +197,7 @@ const AdminPanel: React.FC = () => {
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-800/50">
-              {videos.map(video => (
+              {filteredVideos.map(video => (
                 <tr key={video.id} className={`group transition-colors ${selectedIds.has(video.id) ? 'bg-brand-900/10' : 'hover:bg-white/5'}`}>
                   <td className="p-4">
                     <input 
@@ -255,7 +264,7 @@ const AdminPanel: React.FC = () => {
           </table>
         </div>
         
-        {videos.length === 0 && (
+        {filteredVideos.length === 0 && (
           <div className="p-12 text-center flex flex-col items-center text-gray-500">
             <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
                <i className="fa-solid fa-film text-2xl opacity-50"></i>
@@ -267,7 +276,7 @@ const AdminPanel: React.FC = () => {
         
         {/* Pagination Mock */}
         <div className="p-4 border-t border-gray-800 flex justify-between items-center text-xs text-gray-500">
-           <span>Showing {videos.length} entries</span>
+           <span>Showing {filteredVideos.length} entries</span>
            <div className="flex gap-1">
              <button className="px-3 py-1 rounded hover:bg-gray-800 disabled:opacity-50">Prev</button>
              <button className="px-3 py-1 rounded bg-brand-600 text-white">1</button>

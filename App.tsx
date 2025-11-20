@@ -786,7 +786,14 @@ const App: React.FC = () => {
         );
         
       case AppView.PROFILE:
-        return currentUser ? <UserProfile user={currentUser} setView={navigate} /> : null;
+        return currentUser ? <UserProfile
+            user={currentUser}
+            setView={navigate}
+            onUpdateUser={(updates) => {
+                setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+                showToast("Profile updated successfully");
+            }}
+        /> : null;
       
       case AppView.SETTINGS:
         return <SettingsPage user={currentUser} />;
@@ -803,6 +810,16 @@ const App: React.FC = () => {
            }
         }} 
         onUltraLogin={handleUltraLogin}
+        onLoginSuccess={(userData) => {
+            setCurrentUser({
+                id: `user-${Math.floor(Math.random() * 1000)}`,
+                username: userData.username || 'User',
+                role: userData.role || UserRole.USER,
+                plan: userData.plan || 'premium',
+                avatar: `https://picsum.photos/seed/${userData.username}/100/100`
+            });
+            showToast(`Welcome, ${userData.username}!`);
+        }}
         />;
 
       case AppView.REGISTER:
@@ -811,12 +828,23 @@ const App: React.FC = () => {
            <div className="relative">
              <AuthPages view={currentView} setView={(view) => {
                 if(view === AppView.HOME) {
-                   handleStandardLogin(); 
+                   // Handled by onLoginSuccess, but if needed fallback
+                   if (!currentUser) handleStandardLogin();
                 } else {
                    navigate(view);
                 }
              }} 
              onUltraLogin={handleUltraLogin}
+             onLoginSuccess={(userData) => {
+                setCurrentUser({
+                    id: `user-${Math.floor(Math.random() * 1000)}`,
+                    username: userData.username || 'User',
+                    role: userData.role || UserRole.USER,
+                    plan: userData.plan || 'free',
+                    avatar: `https://picsum.photos/seed/${userData.username}/100/100`
+                });
+                showToast(`Welcome, ${userData.username}! Account created.`);
+            }}
              />
            </div>
          );

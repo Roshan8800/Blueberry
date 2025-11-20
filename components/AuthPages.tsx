@@ -2,20 +2,59 @@
 import React, { useState } from 'react';
 import { AppView } from '../types';
 
+import { AppView, User, UserRole } from '../types';
+
 interface AuthPagesProps {
   view: AppView;
   setView: (view: AppView) => void;
   onUltraLogin?: () => void; // New prop for demo
+  onLoginSuccess?: (user: Partial<User>) => void; // Pass data back to App
 }
 
-const AuthPages: React.FC<AuthPagesProps> = ({ view, setView, onUltraLogin }) => {
+const AuthPages: React.FC<AuthPagesProps> = ({ view, setView, onUltraLogin, onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login logic
-    setView(AppView.HOME);
+    setError('');
+    setIsLoading(true);
+
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsLoading(false);
+
+    if (view === AppView.LOGIN) {
+      // Basic validation (mock)
+      if (email && password) {
+        if (onLoginSuccess) {
+             onLoginSuccess({
+                 username: email.split('@')[0] || 'User',
+                 role: UserRole.USER,
+                 plan: 'premium'
+             });
+        }
+        setView(AppView.HOME);
+      } else {
+        setError('Please fill in all fields');
+      }
+    } else if (view === AppView.REGISTER) {
+      if (email && password && username) {
+          if (onLoginSuccess) {
+              onLoginSuccess({
+                  username: username,
+                  role: UserRole.USER,
+                  plan: 'free'
+              });
+          }
+          setView(AppView.HOME);
+      } else {
+        setError('Please fill in all fields');
+      }
+    }
   };
 
   const renderContent = () => {
@@ -24,20 +63,33 @@ const AuthPages: React.FC<AuthPagesProps> = ({ view, setView, onUltraLogin }) =>
         <>
           <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
           <p className="text-gray-400 mb-8">Enter your credentials to access your account.</p>
+          {error && <div className="bg-red-900/20 border border-red-900 text-red-400 p-3 rounded-lg mb-4 text-sm">{error}</div>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Email</label>
-              <input type="email" required className="w-full bg-black/30 border border-gray-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-black/30 border border-gray-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Password</label>
-              <input type="password" required className="w-full bg-black/30 border border-gray-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-black/30 border border-gray-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none"
+              />
             </div>
             <div className="flex justify-end">
               <button type="button" onClick={() => setView(AppView.FORGOT_PASSWORD)} className="text-xs text-brand-400 hover:text-brand-300">Forgot Password?</button>
             </div>
-            <button type="submit" className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-brand-900/40 transition-all">
-              Sign In
+            <button type="submit" disabled={isLoading} className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-brand-900/40 transition-all disabled:opacity-50 flex justify-center">
+              {isLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Sign In'}
             </button>
             
             {/* Ultra Demo Button */}
@@ -59,21 +111,40 @@ const AuthPages: React.FC<AuthPagesProps> = ({ view, setView, onUltraLogin }) =>
         <>
           <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
           <p className="text-gray-400 mb-8">Join the premium experience today.</p>
+          {error && <div className="bg-red-900/20 border border-red-900 text-red-400 p-3 rounded-lg mb-4 text-sm">{error}</div>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Username</label>
-              <input type="text" required className="w-full bg-black/30 border border-gray-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none" />
+              <input
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full bg-black/30 border border-gray-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Email</label>
-              <input type="email" required className="w-full bg-black/30 border border-gray-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-black/30 border border-gray-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Password</label>
-              <input type="password" required className="w-full bg-black/30 border border-gray-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-black/30 border border-gray-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none"
+              />
             </div>
-            <button type="submit" className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-brand-900/40 transition-all">
-              Register
+            <button type="submit" disabled={isLoading} className="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-brand-900/40 transition-all disabled:opacity-50 flex justify-center">
+              {isLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Register'}
             </button>
           </form>
           <div className="mt-6 text-center text-sm text-gray-500">

@@ -3,12 +3,27 @@ import React from 'react';
 import { User, AppView } from '../types';
 import { MOCK_VIDEOS } from '../constants';
 
+import React, { useState } from 'react';
+import { User, AppView } from '../types';
+import { MOCK_VIDEOS } from '../constants';
+
 interface UserProfileProps {
   user: User;
   setView: (view: AppView) => void;
+  onUpdateUser?: (updates: Partial<User>) => void; // Optional prop for updating user
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ user, setView }) => {
+const UserProfile: React.FC<UserProfileProps> = ({ user, setView, onUpdateUser }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(user.username);
+
+  const handleSave = () => {
+      if(onUpdateUser) {
+          onUpdateUser({ username: editName });
+      }
+      setIsEditing(false);
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-300">
       {/* Header / Banner */}
@@ -30,12 +45,29 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, setView }) => {
         <div className="absolute -bottom-16 left-6 md:left-10 flex items-end gap-6">
           <div className="w-32 h-32 rounded-full border-4 border-dark-bg bg-gray-800 overflow-hidden relative group shadow-2xl">
             <img src={user.avatar || "https://picsum.photos/seed/user/200/200"} alt="Profile" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
+                <i className="fa-solid fa-camera text-white text-xl"></i>
+            </div>
           </div>
           <div className="mb-4">
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              {user.username}
-              <span className="bg-gradient-to-r from-yellow-600 to-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-lg">Premium</span>
-            </h1>
+            {isEditing ? (
+                <div className="flex items-center gap-2">
+                    <input
+                       type="text"
+                       value={editName}
+                       onChange={(e) => setEditName(e.target.value)}
+                       className="bg-black/30 border border-gray-600 rounded p-1 text-xl font-bold text-white outline-none focus:border-brand-500"
+                    />
+                    <button onClick={handleSave} className="bg-brand-600 px-3 py-1 rounded text-xs font-bold hover:bg-brand-500">Save</button>
+                    <button onClick={() => setIsEditing(false)} className="bg-gray-700 px-3 py-1 rounded text-xs hover:bg-gray-600">Cancel</button>
+                </div>
+            ) : (
+                <h1 className="text-3xl font-bold text-white flex items-center gap-3 group">
+                {user.username}
+                <button onClick={() => setIsEditing(true)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-white text-sm"><i className="fa-solid fa-pen"></i></button>
+                <span className="bg-gradient-to-r from-yellow-600 to-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-lg">{user.plan === 'premium' ? 'Premium' : user.plan === 'blueberry' ? 'Ultra' : 'Free'}</span>
+                </h1>
+            )}
             <p className="text-gray-400 text-sm flex items-center gap-2">
               <i className="fa-regular fa-calendar"></i> Member since Jan 2024
             </p>

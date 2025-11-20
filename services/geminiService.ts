@@ -10,10 +10,16 @@ const ai = new GoogleGenAI({ apiKey });
  * This powers the "AI Smart Search" feature.
  */
 export const getSmartSearchSuggestions = async (query: string): Promise<string[]> => {
-  if (!apiKey) {
-    // Fallback if no key is present
+  if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY') {
+    // Fallback if no key is present or default placeholder
     console.warn("Gemini API Key missing. Returning basic fallback.");
-    return [query, `${query} HD`, `${query} 4K`, "Trending"];
+    // Simple mock logic to generate "smart" suggestions without API
+    const related = [query];
+    if (!query.toLowerCase().includes('video')) related.push(`${query} Video`);
+    if (!query.toLowerCase().includes('hd')) related.push(`${query} HD`);
+    related.push('Trending');
+    related.push('Top Rated');
+    return related;
   }
 
   try {

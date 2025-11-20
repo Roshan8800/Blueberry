@@ -9,29 +9,37 @@ interface ShortsFeedProps {
 }
 
 const ShortsFeed: React.FC<ShortsFeedProps> = ({ isUltra = false, onBack }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Need full screen container for intersection observer
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true);
 
   // Using MOCK_VIDEOS to simulate shorts
   const shorts = MOCK_VIDEOS.map((v, i) => ({...v, id: `short-${i}`}));
-  // Uncomment to test empty
-  // const shorts: any[] = [];
+
+  // Simple like state logic (local only)
+  const [likes, setLikes] = useState<Record<string, boolean>>({});
+  const toggleLike = (id: string) => setLikes(prev => ({...prev, [id]: !prev[id]}));
 
   // Use IntersectionObserver to detect which video is in view
   useEffect(() => {
     if (shorts.length === 0) return;
 
+    // Note: root must be the scrollable container.
+    // We select it by ID or ref.
+    const container = document.getElementById('shorts-container');
+
     const options = {
-      root: containerRef.current,
-      threshold: 0.6 // 60% visible
+      root: container,
+      threshold: 0.5 // 50% visible
     };
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const videoId = entry.target.getAttribute('data-id');
-          if (videoId) setPlayingId(videoId);
+          if (videoId && videoId !== playingId) {
+             setPlayingId(videoId);
+          }
         }
       });
     }, options);
@@ -65,8 +73,8 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({ isUltra = false, onBack }) => {
 
   return (
     <div 
-      className="h-[calc(100vh-4rem)] w-full bg-black overflow-y-scroll snap-y snap-mandatory no-scrollbar scroll-smooth relative"
-      ref={containerRef}
+      id="shorts-container"
+      className="h-screen w-full bg-black overflow-y-scroll snap-y snap-mandatory no-scrollbar scroll-smooth relative"
     >
        {/* Back Button Overlay */}
        <button 
@@ -123,11 +131,11 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({ isUltra = false, onBack }) => {
 
                  {/* Right Action Bar */}
                  <div className="absolute right-4 bottom-24 flex flex-col gap-6 items-center z-20">
-                    <button className="flex flex-col items-center gap-1 group">
-                      <div className={`w-12 h-12 bg-gray-800/50 backdrop-blur rounded-full flex items-center justify-center ${isUltra ? 'group-hover:bg-indigo-600' : 'group-hover:bg-brand-600'} transition-colors hover:scale-110`}>
-                          <i className="fa-solid fa-heart text-white text-xl"></i>
+                    <button onClick={() => toggleLike(video.id)} className="flex flex-col items-center gap-1 group">
+                      <div className={`w-12 h-12 backdrop-blur rounded-full flex items-center justify-center transition-colors hover:scale-110 ${likes[video.id] ? (isUltra ? 'bg-indigo-600' : 'bg-brand-600') : 'bg-gray-800/50'}`}>
+                          <i className={`fa-solid fa-heart text-xl ${likes[video.id] ? 'text-white' : 'text-white'}`}></i>
                       </div>
-                      <span className="text-white text-xs font-bold">24.5K</span>
+                      <span className="text-white text-xs font-bold">{likes[video.id] ? '24.6K' : '24.5K'}</span>
                     </button>
                     <button className="flex flex-col items-center gap-1 group">
                       <div className={`w-12 h-12 bg-gray-800/50 backdrop-blur rounded-full flex items-center justify-center ${isUltra ? 'group-hover:bg-indigo-600' : 'group-hover:bg-brand-600'} transition-colors hover:scale-110`}>

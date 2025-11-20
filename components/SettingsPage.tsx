@@ -11,11 +11,28 @@ type SettingsTab = 'ACCOUNT' | 'PLAYER' | 'PRIVACY' | 'NOTIFICATIONS';
 const SettingsPage: React.FC<SettingsPageProps> = ({ user }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('ACCOUNT');
 
-  // Mock form states
-  const [autoplay, setAutoplay] = useState(true);
-  const [highQuality, setHighQuality] = useState(true);
-  const [emailNotifs, setEmailNotifs] = useState(true);
-  const [historyPaused, setHistoryPaused] = useState(false);
+  // Initialize settings from localStorage or defaults
+  const [autoplay, setAutoplay] = useState(() => localStorage.getItem('settings_autoplay') !== 'false');
+  const [highQuality, setHighQuality] = useState(() => localStorage.getItem('settings_hq') !== 'false');
+  const [emailNotifs, setEmailNotifs] = useState(() => localStorage.getItem('settings_emails') !== 'false');
+  const [historyPaused, setHistoryPaused] = useState(() => localStorage.getItem('settings_history_pause') === 'true');
+
+  // Helper to update setting and persist
+  const updateSetting = (key: string, value: boolean, setter: (v: boolean) => void) => {
+      setter(value);
+      localStorage.setItem(key, String(value));
+  };
+
+  const handleClearHistory = (type: 'watch' | 'search') => {
+      if(type === 'watch') {
+          // In a real app this would call an API or clear the history state in App.tsx via a prop/context
+          localStorage.removeItem('playnite_watch_history'); // Hypothetical storage key
+          alert("Watch History Cleared (Local Storage)");
+      } else {
+          localStorage.removeItem('playnite_search_history');
+          alert("Search History Cleared");
+      }
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -73,7 +90,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user }) => {
                   </div>
                   <div 
                     className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${autoplay ? 'bg-brand-600' : 'bg-gray-700'}`}
-                    onClick={() => setAutoplay(!autoplay)}
+                    onClick={() => updateSetting('settings_autoplay', !autoplay, setAutoplay)}
                   >
                     <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${autoplay ? 'translate-x-6' : 'translate-x-0'}`}></div>
                   </div>
@@ -86,7 +103,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user }) => {
                   </div>
                   <div 
                     className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${highQuality ? 'bg-brand-600' : 'bg-gray-700'}`}
-                    onClick={() => setHighQuality(!highQuality)}
+                    onClick={() => updateSetting('settings_hq', !highQuality, setHighQuality)}
                   >
                     <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${highQuality ? 'translate-x-6' : 'translate-x-0'}`}></div>
                   </div>
@@ -108,19 +125,19 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user }) => {
                   </div>
                   <div 
                     className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${historyPaused ? 'bg-brand-600' : 'bg-gray-700'}`}
-                    onClick={() => setHistoryPaused(!historyPaused)}
+                    onClick={() => updateSetting('settings_history_pause', !historyPaused, setHistoryPaused)}
                   >
                     <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${historyPaused ? 'translate-x-6' : 'translate-x-0'}`}></div>
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-gray-800">
-                  <button className="text-red-500 hover:text-red-400 text-sm font-medium flex items-center gap-2">
+                  <button onClick={() => handleClearHistory('watch')} className="text-red-500 hover:text-red-400 text-sm font-medium flex items-center gap-2">
                     <i className="fa-solid fa-trash"></i> Clear Watch History
                   </button>
                 </div>
                  <div className="pt-4">
-                  <button className="text-red-500 hover:text-red-400 text-sm font-medium flex items-center gap-2">
+                  <button onClick={() => handleClearHistory('search')} className="text-red-500 hover:text-red-400 text-sm font-medium flex items-center gap-2">
                     <i className="fa-solid fa-trash"></i> Clear Search History
                   </button>
                 </div>
@@ -140,7 +157,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user }) => {
                   </div>
                   <div 
                     className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${emailNotifs ? 'bg-brand-600' : 'bg-gray-700'}`}
-                    onClick={() => setEmailNotifs(!emailNotifs)}
+                    onClick={() => updateSetting('settings_emails', !emailNotifs, setEmailNotifs)}
                   >
                     <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${emailNotifs ? 'translate-x-6' : 'translate-x-0'}`}></div>
                   </div>

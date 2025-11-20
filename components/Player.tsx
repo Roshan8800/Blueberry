@@ -89,6 +89,45 @@ const Player: React.FC<PlayerProps> = ({
   ]);
   const [commentText, setCommentText] = useState('');
 
+  // Comment Submission Handler
+  const handleAddComment = () => {
+    if (!commentText.trim()) return;
+    const newComment: Comment = {
+      id: Date.now(),
+      user: currentUser.username,
+      avatar: currentUser.avatar || "https://picsum.photos/seed/me/100/100",
+      text: commentText,
+      time: "Just now",
+      likes: 0
+    };
+    setComments([newComment, ...comments]);
+    setCommentText('');
+    onShowToast("Comment posted!");
+  };
+
+  const toggleLike = () => {
+    if (isLiked) {
+       setIsLiked(false);
+       setLikesCount(prev => prev - 1);
+    } else {
+       setIsLiked(true);
+       setLikesCount(prev => prev + 1);
+       if (isDisliked) setIsDisliked(false);
+    }
+  };
+
+  const toggleDislike = () => {
+    if (isDisliked) {
+       setIsDisliked(false);
+    } else {
+       setIsDisliked(true);
+       if (isLiked) {
+          setIsLiked(false);
+          setLikesCount(prev => prev - 1);
+       }
+    }
+  };
+
   // Iframe handling
   const isIframeEmbed = video.embedUrl && (video.embedUrl.includes('http') || video.embedUrl.includes('<iframe'));
   const iframeSrc = video.embedUrl; 
@@ -586,17 +625,20 @@ const Player: React.FC<PlayerProps> = ({
 
                  {/* Interaction Buttons */}
                  <div className="flex items-center gap-2 bg-black/20 p-1 rounded-full border border-gray-800/50">
-                    <button onClick={() => setLikesCount(prev => prev + 1)} className="flex items-center gap-2 px-4 py-1.5 rounded-full hover:bg-gray-800 text-gray-300 hover:text-white transition-colors">
-                        <i className="fa-regular fa-thumbs-up"></i> <span className="text-xs font-bold">{likesCount}</span>
+                    <button onClick={toggleLike} className={`flex items-center gap-2 px-4 py-1.5 rounded-full hover:bg-gray-800 transition-colors ${isLiked ? 'text-brand-500' : 'text-gray-300 hover:text-white'}`}>
+                        <i className={`fa-${isLiked ? 'solid' : 'regular'} fa-thumbs-up`}></i> <span className="text-xs font-bold">{likesCount}</span>
                     </button>
                     <div className="w-px h-4 bg-gray-700"></div>
-                    <button className="px-4 py-1.5 rounded-full hover:bg-gray-800 text-gray-300 hover:text-white transition-colors"><i className="fa-regular fa-thumbs-down"></i></button>
+                    <button onClick={toggleDislike} className={`px-4 py-1.5 rounded-full hover:bg-gray-800 transition-colors ${isDisliked ? 'text-white' : 'text-gray-300 hover:text-white'}`}><i className={`fa-${isDisliked ? 'solid' : 'regular'} fa-thumbs-down`}></i></button>
                     <div className="w-px h-4 bg-gray-700"></div>
                     <button onClick={() => onToggleFavorite()} className={`px-4 py-1.5 rounded-full hover:bg-gray-800 transition-colors ${isFavorite ? 'text-brand-500' : 'text-gray-300 hover:text-white'}`}>
                         <i className={`fa-${isFavorite ? 'solid' : 'regular'} fa-heart`}></i>
                     </button>
-                    <button className="px-4 py-1.5 rounded-full hover:bg-gray-800 text-gray-300 hover:text-white transition-colors"><i className="fa-solid fa-share"></i></button>
-                    <button className="px-4 py-1.5 rounded-full hover:bg-gray-800 text-gray-300 hover:text-white transition-colors hidden sm:block"><i className="fa-solid fa-download"></i></button>
+                    <button onClick={() => {onShowToast("Link copied to clipboard!");}} className="px-4 py-1.5 rounded-full hover:bg-gray-800 text-gray-300 hover:text-white transition-colors"><i className="fa-solid fa-share"></i></button>
+                    <div className="w-px h-4 bg-gray-700"></div>
+                    <button onClick={() => onToggleWatchLater(video.id)} className={`px-4 py-1.5 rounded-full hover:bg-gray-800 transition-colors hidden sm:block ${isWatchLater(video.id) ? 'text-brand-500' : 'text-gray-300 hover:text-white'}`}>
+                         <i className={`fa-${isWatchLater(video.id) ? 'solid' : 'regular'} fa-clock`}></i>
+                    </button>
                  </div>
               </div>
 
@@ -628,7 +670,7 @@ const Player: React.FC<PlayerProps> = ({
                      {commentText && (
                          <div className="flex justify-end gap-2 mt-2">
                              <button onClick={() => setCommentText('')} className="text-xs text-gray-400 hover:text-white">Cancel</button>
-                             <button className={`text-xs px-3 py-1 rounded-full font-bold ${isUltra ? 'bg-cyan-600 text-black' : 'bg-brand-600 text-white'}`}>Comment</button>
+                             <button onClick={handleAddComment} className={`text-xs px-3 py-1 rounded-full font-bold ${isUltra ? 'bg-cyan-600 text-black' : 'bg-brand-600 text-white'}`}>Comment</button>
                          </div>
                      )}
                  </div>
