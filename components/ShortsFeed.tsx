@@ -78,6 +78,8 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({ isUltra = false, onBack }) => {
 
        {shorts.map((video) => {
          const isPlaying = playingId === video.id;
+         // Defensive safe string for author
+         const safeAuthor = String(video.author || 'Unknown');
          
          return (
            <div 
@@ -150,17 +152,17 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({ isUltra = false, onBack }) => {
                  <div className="absolute left-4 bottom-6 right-20 text-white z-20">
                     <div className="flex items-center gap-3 mb-3">
                        <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden">
-                           <img src={`https://picsum.photos/seed/${video.author}/50/50`} className="w-full h-full object-cover" />
+                           <img src={`https://picsum.photos/seed/${safeAuthor}/50/50`} className="w-full h-full object-cover" />
                        </div>
                        <div>
-                           <p className="font-bold text-sm drop-shadow-md shadow-black">@{video.author.replace(/\s/g, '').toLowerCase()}</p>
+                           <p className="font-bold text-sm drop-shadow-md shadow-black">@{safeAuthor.replace(/\s/g, '').toLowerCase()}</p>
                            <button className={`text-[10px] ${isUltra ? 'bg-indigo-600' : 'bg-brand-600'} px-3 py-1 rounded-full font-bold mt-0.5 hover:brightness-110`}>Subscribe</button>
                        </div>
                     </div>
                     <p className="text-sm line-clamp-2 mb-2 drop-shadow-md font-medium">{video.description} #shorts #viral #trending</p>
                     <div className="flex items-center gap-2 text-xs opacity-90 bg-black/40 px-3 py-1 rounded-full w-fit backdrop-blur-sm">
                        <i className="fa-solid fa-music"></i>
-                       <span className="animate-pulse">Original Sound - {video.author}</span>
+                       <span className="animate-pulse">Original Sound - {safeAuthor}</span>
                     </div>
                  </div>
               </div>

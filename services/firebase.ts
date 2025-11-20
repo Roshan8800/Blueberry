@@ -34,6 +34,7 @@ try {
 
 /**
  * Fetches all videos from the 'videos' collection in Firestore.
+ * Maps specific database fields (pornstar, catagory, iframe code, etc.) to the application's Video type.
  */
 export const fetchVideos = async (): Promise<Video[]> => {
   if (!db) {
@@ -49,20 +50,85 @@ export const fetchVideos = async (): Promise<Video[]> => {
     }
     return querySnapshot.docs.map(doc => {
       const data = doc.data();
-      // Map Firestore data to Video interface, providing defaults for missing fields
-      // Explicitly casting numbers to strings for text-based UI components
+      
+      // Handle Views: Ensure it's a string.
+      let safeViews = "0";
+      if (data.views !== undefined && data.views !== null) {
+        safeViews = String(data.views);
+      } else {
+         // Fallback: estimate views based on thumbs if actual views missing
+         // Check both 'thumsup' (from your data) and 'thumbsup'
+         const up = Number(data.thumsup || data.thumbsup || 0);
+         const down = Number(data.thumbsdown || 0);
+         if (up + down > 0) safeViews = String((up + down) * 12); 
+      }
+
+      // Handle Rating: Calculate from thumbs if not provided explicitly
+      let safeRating = 95;
+      if (typeof data.rating === 'number') {
+        safeRating = data.rating;
+      } else if (data.rating && !isNaN(Number(data.rating))) {
+        safeRating = Number(data.rating);
+      } else {
+         const up = Number(data.thumsup || data.thumbsup || 0);
+         const down = Number(data.thumbsdown || 0);
+         const total = up + down;
+         if (total > 0) {
+            safeRating = Math.round((up / total) * 100);
+         }
+      }
+
+      // Handle Iframe/Embed Code robustly
+      // Specific field name 'iframe code'
+      let embedUrl = "";
+      const rawIframe = data['iframe code'] || data.embedUrl;
+      if (rawIframe) {
+        const stringIframe = String(rawIframe);
+        if (stringIframe.includes('<iframe')) {
+            // Try to extract src from iframe tag
+            const match = stringIframe.match(/src=["']([^"']+)["']/);
+            embedUrl = match ? match[1] : "";
+        } else {
+            // Assuming it's a direct link
+            embedUrl = stringIframe;
+        }
+      }
+
+      // Map Firestore fields to Video interface
+      // We check multiple possible field names to be robust against DB variations
+      // Using String() constructor prevents 'undefined' values from causing issues or circular refs
       return {
         id: doc.id,
-        title: data.title || "Untitled Video",
-        thumbnail: data.thumbnail || "https://picsum.photos/seed/default/600/400",
-        duration: data.duration || "00:00",
-        views: data.views ? String(data.views) : "0",
-        author: data.author || "Unknown",
-        category: data.category || "Uncategorized",
-        embedUrl: data.embedUrl || "",
-        description: data.description || "No description available.",
-        rating: typeof data.rating === 'number' ? data.rating : 0,
-        tags: Array.isArray(data.tags) ? data.tags : []
+        
+        // Title
+        title: String(data.title || "Untitled Video"),
+        
+        // Thumbnail: Prioritize 'thumbnail URL' and 'screenshot URL'
+        thumbnail: String(data['thumbnail URL'] || data['screenshot URL'] || data.thumbnail || "https://picsum.photos/seed/default/600/400"),
+        
+        // Duration
+        duration: String(data.duration || "00:00"),
+        
+        // Views
+        views: safeViews,
+        
+        // Author: Prioritize 'pornstar' and 'perform' (common in adult datasets)
+        author: String(data.pornstar || data.perform || data.author || "Unknown Star"),
+        
+        // Category: Prioritize 'catagory' (common typo in datasets)
+        category: String(data.catagory || data.category || "Uncategorized"),
+        
+        // Embed
+        embedUrl: embedUrl,
+        
+        // Description
+        description: String(data.description || ""),
+        
+        // Rating
+        rating: safeRating,
+        
+        // Tags
+        tags: Array.isArray(data.tags) ? data.tags.map(String) : []
       } as Video;
     });
   } catch (error) {
