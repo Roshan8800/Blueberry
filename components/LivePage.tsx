@@ -1,20 +1,33 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MOCK_VIDEOS } from '../constants';
 import { EmptyView } from './StateViews';
+import { fetchVideos } from '../services/firebase';
+import { Video } from '../types';
 
 interface LivePageProps {
   onBack: () => void;
 }
 
 const LivePage: React.FC<LivePageProps> = ({ onBack }) => {
-  const liveChannels = [
-    ...MOCK_VIDEOS.filter(v => v.category === 'Live Cams'),
-    ...MOCK_VIDEOS.slice(0, 4).map(v => ({...v, id: `live-${v.id}`, duration: 'LIVE'}))
-  ];
-  
-  // Uncomment to test empty state
-  // const liveChannels: any[] = [];
+  const [liveChannels, setLiveChannels] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+      const loadLive = async () => {
+          const vids = await fetchVideos();
+          const live = vids.filter(v => v.category === 'Live Cams' || v.duration === 'LIVE');
+
+          if (live.length > 0) {
+              setLiveChannels(live);
+          } else {
+               // Fallback / Mock if no live found
+               setLiveChannels(MOCK_VIDEOS.slice(0, 4).map(v => ({...v, id: `live-${v.id}`, duration: 'LIVE'})));
+          }
+          setLoading(false);
+      };
+      loadLive();
+  }, []);
 
   return (
     <div className="p-6 max-w-[1800px] mx-auto animate-in fade-in">
@@ -28,7 +41,11 @@ const LivePage: React.FC<LivePageProps> = ({ onBack }) => {
           <h1 className="text-2xl font-bold text-white">Live Channels</h1>
        </div>
 
-       {liveChannels.length > 0 ? (
+       {loading ? (
+          <div className="flex items-center justify-center h-[50vh]">
+             <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+       ) : liveChannels.length > 0 ? (
          <>
            <div className="relative rounded-2xl overflow-hidden aspect-[4/1] mb-8 border border-red-900/50 shadow-[0_0_50px_rgba(220,38,38,0.2)]">
                <img src="https://picsum.photos/seed/crowd/1600/400" className="w-full h-full object-cover opacity-60" />

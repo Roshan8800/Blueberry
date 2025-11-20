@@ -154,6 +154,31 @@ export const fetchModels = async (): Promise<Model[]> => {
     }
 };
 
+export const fetchUsers = async (): Promise<any[]> => {
+  if (!db) return [];
+  try {
+      // For demo purposes, we might not have a 'users' collection publicly readable
+      // But we can try. If it fails (rules), we return mock.
+      const snap = await getDocs(collection(db, "users"));
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+      console.error("Error fetching users", e);
+      return [];
+  }
+};
+
+export const updateUserProfile = async (uid: string, data: any) => {
+  if (!db) return;
+  try {
+    const userRef = doc(db, "users", uid);
+    // Use setDoc with merge to create if not exists
+    await setDoc(userRef, data, { merge: true });
+  } catch (e) {
+    console.error("Error updating user profile", e);
+    throw e;
+  }
+};
+
 export const fetchPosts = async (): Promise<CommunityPost[]> => {
     if (!db) return [];
     try {

@@ -7,12 +7,32 @@ interface DownloadsPageProps {
   onBack: () => void;
 }
 
+import { Video } from '../types';
+
 const DownloadsPage: React.FC<DownloadsPageProps> = ({ onBack }) => {
-  // Mock downloaded data - Empty for demonstration or populated based on logic
-  // In a real app this would come from local storage or a database
-  const downloads = MOCK_VIDEOS.slice(0, 3); 
-  // To test empty state, you can uncomment the line below:
-  // const downloads: any[] = [];
+  // Mock downloaded data - In a real PWA this would access Cache Storage or IndexedDB
+  // For this web version, we simulate downloads via localStorage
+  const [downloads, setDownloads] = React.useState<Video[]>([]);
+
+  React.useEffect(() => {
+      try {
+          const saved = localStorage.getItem('playnite_downloads');
+          if (saved) {
+              setDownloads(JSON.parse(saved));
+          } else {
+              // Seed with mock data if empty for demo
+              setDownloads(MOCK_VIDEOS.slice(0, 2));
+          }
+      } catch (e) {
+          setDownloads([]);
+      }
+  }, []);
+
+  const handleDelete = (id: string) => {
+      const newDownloads = downloads.filter(v => v.id !== id);
+      setDownloads(newDownloads);
+      localStorage.setItem('playnite_downloads', JSON.stringify(newDownloads));
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto animate-in fade-in">
@@ -31,7 +51,7 @@ const DownloadsPage: React.FC<DownloadsPageProps> = ({ onBack }) => {
              <p className="text-gray-400 text-sm">Watch your content offline.</p>
           </div>
           <div className="ml-auto text-right">
-             <p className="text-white font-bold">{downloads.length > 0 ? '1.2 GB' : '0 B'}</p>
+             <p className="text-white font-bold">{downloads.length > 0 ? `${(downloads.length * 0.4).toFixed(1)} GB` : '0 B'}</p>
              <p className="text-xs text-gray-500">Used Space</p>
           </div>
        </div>
@@ -46,12 +66,12 @@ const DownloadsPage: React.FC<DownloadsPageProps> = ({ onBack }) => {
                  </div>
                  <div className="flex-1">
                     <h3 className="font-bold text-white text-lg mb-1">{video.title}</h3>
-                    <p className="text-gray-400 text-sm mb-4">{video.author} • 450 MB</p>
+                    <p className="text-gray-400 text-sm mb-4">{video.author} • ~400 MB</p>
                     <div className="flex gap-3">
                        <button className="bg-brand-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-brand-500 flex items-center gap-2">
                           <i className="fa-solid fa-play"></i> Play
                        </button>
-                       <button className="bg-gray-800 text-gray-300 px-4 py-1.5 rounded-lg text-sm hover:bg-gray-700 flex items-center gap-2">
+                       <button onClick={() => handleDelete(video.id)} className="bg-gray-800 text-gray-300 px-4 py-1.5 rounded-lg text-sm hover:bg-gray-700 flex items-center gap-2">
                           <i className="fa-solid fa-trash"></i> Delete
                        </button>
                     </div>

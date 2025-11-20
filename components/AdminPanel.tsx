@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Video } from '../types';
+import { Video, User } from '../types';
 import { generateVideoDescription } from '../services/geminiService';
-import { fetchVideos, deleteDoc, doc, db, addDoc, collection } from '../services/firebase';
+import { fetchVideos, fetchUsers, deleteDoc, doc, db, addDoc, collection } from '../services/firebase';
 
 const AdminPanel: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'VIDEOS' | 'USERS'>('VIDEOS');
   const [videos, setVideos] = useState<Video[]>([]);
+  const [users, setUsers] = useState<any[]>([]); // Simplified user type
   const [searchQuery, setSearchQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -17,20 +19,27 @@ const AdminPanel: React.FC = () => {
     const load = async () => {
         const vids = await fetchVideos();
         setVideos(vids);
+        const usrs = await fetchUsers();
+        setUsers(usrs);
     };
     load();
   }, []);
 
   // Bulk Action Handlers
-  // Filter videos based on search query
   const filteredVideos = videos.filter(video =>
     video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     video.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredUsers = users.filter(user =>
+     (user.username?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+     (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+  );
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedIds(new Set(filteredVideos.map(v => v.id)));
+      if (activeTab === 'VIDEOS') setSelectedIds(new Set(filteredVideos.map(v => v.id)));
+      // Users selection logic if needed
     } else {
       setSelectedIds(new Set());
     }
@@ -112,9 +121,12 @@ const AdminPanel: React.FC = () => {
           <p className="text-gray-400 text-sm mt-1">Overview of content, users, and performance.</p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <button className="flex-1 md:flex-none bg-dark-card border border-gray-700 hover:border-gray-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all">
-            <i className="fa-solid fa-users mr-2 text-gray-400"></i>
-            Manage Users
+          <button
+            onClick={() => setActiveTab(activeTab === 'VIDEOS' ? 'USERS' : 'VIDEOS')}
+            className={`flex-1 md:flex-none border px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'USERS' ? 'bg-white text-black border-white' : 'bg-dark-card border-gray-700 text-white hover:border-gray-500'}`}
+          >
+            <i className={`fa-solid ${activeTab === 'USERS' ? 'fa-video' : 'fa-users'} mr-2 ${activeTab === 'USERS' ? 'text-black' : 'text-gray-400'}`}></i>
+            {activeTab === 'VIDEOS' ? 'Manage Users' : 'Manage Videos'}
           </button>
           <button 
             onClick={() => setShowModal(true)}
@@ -153,12 +165,14 @@ const AdminPanel: React.FC = () => {
         ))}
       </div>
 
-      {/* Video Table Section */}
+      {/* Content Table Section */}
       <div className="bg-dark-card rounded-2xl border border-gray-800 overflow-hidden flex flex-col">
         <div className="p-5 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4 bg-dark-surface/50">
           <div className="flex items-center gap-3">
-            <h2 className="font-bold text-white text-lg">Video Library</h2>
-            <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-full">{videos.length} files</span>
+            <h2 className="font-bold text-white text-lg">{activeTab === 'VIDEOS' ? 'Video Library' : 'User Directory'}</h2>
+            <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-full">
+               {activeTab === 'VIDEOS' ? videos.length : users.length} records
+            </span>
           </div>
           
           {/* Search within table */}
@@ -199,90 +213,127 @@ const AdminPanel: React.FC = () => {
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-black/40 text-gray-400 text-xs uppercase tracking-wider">
-                <th className="p-4 w-10">
-                  <input 
-                    type="checkbox" 
-                    onChange={handleSelectAll}
-                    checked={selectedIds.size === filteredVideos.length && filteredVideos.length > 0}
-                    className="rounded border-gray-700 bg-gray-800 text-brand-600 focus:ring-0 focus:ring-offset-0"
-                  />
-                </th>
-                <th className="p-4 font-medium">Video Content</th>
-                <th className="p-4 font-medium">Category</th>
-                <th className="p-4 font-medium">Performance</th>
-                <th className="p-4 font-medium">AI Optimization</th>
-                <th className="p-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-gray-800/50">
-              {filteredVideos.map(video => (
-                <tr key={video.id} className={`group transition-colors ${selectedIds.has(video.id) ? 'bg-brand-900/10' : 'hover:bg-white/5'}`}>
-                  <td className="p-4">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedIds.has(video.id)}
-                      onChange={() => handleSelectOne(video.id)}
-                      className="rounded border-gray-700 bg-gray-800 text-brand-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                    />
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-gray-900 border border-gray-700 group-hover:border-gray-500 transition-colors">
-                        <img src={video.thumbnail} className="w-full h-full object-cover" alt="" />
-                        <div className="absolute inset-0 bg-black/20"></div>
-                      </div>
-                      <div className="flex flex-col">
-                        <p className="font-semibold text-white truncate max-w-[180px]">{video.title}</p>
-                        <p className="text-xs text-gray-500 font-mono">{video.id}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs border border-gray-700">
-                      {video.category}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center text-xs text-gray-300 gap-1">
-                         <i className="fa-solid fa-eye text-gray-500"></i> {video.views}
-                      </div>
-                      <div className="w-24 h-1 bg-gray-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-green-500" style={{ width: `${video.rating}%` }}></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <button 
-                      id={`ai-btn-${video.id}`}
-                      onClick={() => handleGenerateAiDesc(video.id)}
-                      disabled={isAiLoading}
-                      className="flex items-center gap-2 text-xs bg-gradient-to-r from-purple-900/40 to-blue-900/40 border border-purple-500/30 text-purple-300 px-3 py-1.5 rounded-lg hover:border-purple-500/60 hover:text-white transition-all"
-                    >
-                      <i className="fa-solid fa-wand-magic-sparkles"></i>
-                      <span>Generate Desc</span>
-                    </button>
-                  </td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                      <button className="w-8 h-8 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors">
-                        <i className="fa-solid fa-pen-to-square"></i>
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(video.id)} 
-                        className="w-8 h-8 rounded-lg hover:bg-rose-900/30 text-gray-400 hover:text-rose-500 flex items-center justify-center transition-colors"
-                      >
-                        <i className="fa-solid fa-trash-can"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {activeTab === 'VIDEOS' ? (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-black/40 text-gray-400 text-xs uppercase tracking-wider">
+                    <th className="p-4 w-10">
+                      <input
+                        type="checkbox"
+                        onChange={handleSelectAll}
+                        checked={selectedIds.size === filteredVideos.length && filteredVideos.length > 0}
+                        className="rounded border-gray-700 bg-gray-800 text-brand-600 focus:ring-0 focus:ring-offset-0"
+                      />
+                    </th>
+                    <th className="p-4 font-medium">Video Content</th>
+                    <th className="p-4 font-medium">Category</th>
+                    <th className="p-4 font-medium">Performance</th>
+                    <th className="p-4 font-medium">AI Optimization</th>
+                    <th className="p-4 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm divide-y divide-gray-800/50">
+                  {filteredVideos.map(video => (
+                    <tr key={video.id} className={`group transition-colors ${selectedIds.has(video.id) ? 'bg-brand-900/10' : 'hover:bg-white/5'}`}>
+                      <td className="p-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(video.id)}
+                          onChange={() => handleSelectOne(video.id)}
+                          className="rounded border-gray-700 bg-gray-800 text-brand-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                        />
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-gray-900 border border-gray-700 group-hover:border-gray-500 transition-colors">
+                            <img src={video.thumbnail} className="w-full h-full object-cover" alt="" />
+                            <div className="absolute inset-0 bg-black/20"></div>
+                          </div>
+                          <div className="flex flex-col">
+                            <p className="font-semibold text-white truncate max-w-[180px]">{video.title}</p>
+                            <p className="text-xs text-gray-500 font-mono">{video.id}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs border border-gray-700">
+                          {video.category}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center text-xs text-gray-300 gap-1">
+                            <i className="fa-solid fa-eye text-gray-500"></i> {video.views}
+                          </div>
+                          <div className="w-24 h-1 bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-green-500" style={{ width: `${video.rating}%` }}></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <button
+                          id={`ai-btn-${video.id}`}
+                          onClick={() => handleGenerateAiDesc(video.id)}
+                          disabled={isAiLoading}
+                          className="flex items-center gap-2 text-xs bg-gradient-to-r from-purple-900/40 to-blue-900/40 border border-purple-500/30 text-purple-300 px-3 py-1.5 rounded-lg hover:border-purple-500/60 hover:text-white transition-all"
+                        >
+                          <i className="fa-solid fa-wand-magic-sparkles"></i>
+                          <span>Generate Desc</span>
+                        </button>
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                          <button className="w-8 h-8 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors">
+                            <i className="fa-solid fa-pen-to-square"></i>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(video.id)}
+                            className="w-8 h-8 rounded-lg hover:bg-rose-900/30 text-gray-400 hover:text-rose-500 flex items-center justify-center transition-colors"
+                          >
+                            <i className="fa-solid fa-trash-can"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+          ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-black/40 text-gray-400 text-xs uppercase tracking-wider">
+                    <th className="p-4 font-medium">User</th>
+                    <th className="p-4 font-medium">Plan</th>
+                    <th className="p-4 font-medium">Role</th>
+                    <th className="p-4 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm divide-y divide-gray-800/50">
+                  {filteredUsers.map((user: any) => (
+                    <tr key={user.id} className="hover:bg-white/5 transition-colors">
+                      <td className="p-4">
+                         <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold">{user.username?.[0] || 'U'}</div>
+                            <div>
+                               <p className="font-bold text-white">{user.username || 'Unknown'}</p>
+                               <p className="text-xs text-gray-500">{user.email}</p>
+                            </div>
+                         </div>
+                      </td>
+                      <td className="p-4">
+                         <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${user.plan === 'blueberry' ? 'bg-indigo-900 text-indigo-200' : 'bg-gray-800 text-gray-300'}`}>
+                             {user.plan || 'free'}
+                         </span>
+                      </td>
+                      <td className="p-4 text-gray-400 text-xs">{user.role || 'USER'}</td>
+                      <td className="p-4 text-right">
+                         <button className="text-gray-400 hover:text-white"><i className="fa-solid fa-ellipsis"></i></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+          )}
         </div>
         
         {filteredVideos.length === 0 && (

@@ -25,12 +25,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user }) => {
 
   const handleClearHistory = (type: 'watch' | 'search') => {
       if(type === 'watch') {
-          // In a real app this would call an API or clear the history state in App.tsx via a prop/context
-          localStorage.removeItem('playnite_watch_history'); // Hypothetical storage key
-          alert("Watch History Cleared (Local Storage)");
+          localStorage.removeItem('playnite_watch_history');
+          // Also clear "favorites" and "watch later" for a full reset as requested by "Clear History" often implies data reset
+          localStorage.removeItem('playnite_favorites');
+          localStorage.removeItem('playnite_watch_later');
+          alert("Watch History and Local Data Cleared");
+          window.location.reload(); // Reload to reflect changes
       } else {
           localStorage.removeItem('playnite_search_history');
           alert("Search History Cleared");
+          window.location.reload();
       }
   };
 

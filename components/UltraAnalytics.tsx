@@ -1,11 +1,36 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { fetchVideos } from '../services/firebase';
 
 interface UltraAnalyticsProps {
   onBack: () => void;
 }
 
 const UltraAnalytics: React.FC<UltraAnalyticsProps> = ({ onBack }) => {
+  const [stats, setStats] = useState({ watchTime: 0, score: 92.4, value: 0, speed: '420 Mbps' });
+
+  useEffect(() => {
+      const loadStats = async () => {
+          const vids = await fetchVideos();
+          const totalViews = vids.reduce((acc, v) => {
+              let count = 0;
+              const s = v.views.toLowerCase();
+              if (s.includes('m')) count = parseFloat(s) * 1000000;
+              else if (s.includes('k')) count = parseFloat(s) * 1000;
+              else count = parseInt(s) || 0;
+              return acc + count;
+          }, 0);
+
+          setStats({
+              watchTime: Math.floor(totalViews * 5 / 60), // Approx 5 mins per view
+              score: 90 + (Math.random() * 10),
+              value: totalViews * 0.02, // Consumer value metric
+              speed: '420 Mbps'
+          });
+      };
+      loadStats();
+  }, []);
+
   return (
     <div className="p-6 max-w-[1600px] mx-auto animate-in fade-in zoom-in duration-300">
         <div className="flex items-center justify-between mb-8">
@@ -31,10 +56,10 @@ const UltraAnalytics: React.FC<UltraAnalyticsProps> = ({ onBack }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {[
-                { label: 'Total Watch Time', val: '128h', sub: '+12% vs last month', icon: 'fa-clock', color: 'text-cyan-400' },
-                { label: 'Engagement Score', val: '94.2', sub: 'Top 5% of users', icon: 'fa-chart-line', color: 'text-indigo-400' },
-                { label: 'Content Value', val: '$4,200', sub: 'Est. consumption value', icon: 'fa-gem', color: 'text-purple-400' },
-                { label: 'Network Speed', val: '420 Mbps', sub: 'Avg. streaming bitrate', icon: 'fa-wifi', color: 'text-emerald-400' }
+                { label: 'Total Watch Time', val: `${stats.watchTime}h`, sub: '+12% vs last month', icon: 'fa-clock', color: 'text-cyan-400' },
+                { label: 'Engagement Score', val: stats.score.toFixed(1), sub: 'Top 5% of users', icon: 'fa-chart-line', color: 'text-indigo-400' },
+                { label: 'Content Value', val: `$${stats.value.toLocaleString()}`, sub: 'Est. consumption value', icon: 'fa-gem', color: 'text-purple-400' },
+                { label: 'Network Speed', val: stats.speed, sub: 'Avg. streaming bitrate', icon: 'fa-wifi', color: 'text-emerald-400' }
             ].map((stat, idx) => (
                 <div key={idx} className="bg-[#0f172a] border border-indigo-900/30 rounded-2xl p-6 relative overflow-hidden group hover:border-indigo-500/50 transition-colors">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">

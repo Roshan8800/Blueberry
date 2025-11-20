@@ -9,15 +9,29 @@ interface UserProfileProps {
   onUpdateUser?: (updates: Partial<User>) => void; // Optional prop for updating user
 }
 
+import { updateUserProfile } from '../services/firebase';
+
 const UserProfile: React.FC<UserProfileProps> = ({ user, setView, onUpdateUser }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(user.username);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-      if(onUpdateUser) {
-          onUpdateUser({ username: editName });
+  const handleSave = async () => {
+      setIsSaving(true);
+      try {
+        // Update Firestore
+        await updateUserProfile(user.id, { username: editName });
+
+        // Update Local State via prop
+        if(onUpdateUser) {
+            onUpdateUser({ username: editName });
+        }
+        setIsEditing(false);
+      } catch (e) {
+        alert("Failed to save profile changes.");
+      } finally {
+        setIsSaving(false);
       }
-      setIsEditing(false);
   };
 
   return (
@@ -54,7 +68,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, setView, onUpdateUser }
                        onChange={(e) => setEditName(e.target.value)}
                        className="bg-black/30 border border-gray-600 rounded p-1 text-xl font-bold text-white outline-none focus:border-brand-500"
                     />
-                    <button onClick={handleSave} className="bg-brand-600 px-3 py-1 rounded text-xs font-bold hover:bg-brand-500">Save</button>
+                    <button onClick={handleSave} disabled={isSaving} className="bg-brand-600 px-3 py-1 rounded text-xs font-bold hover:bg-brand-500 disabled:opacity-50">
+                        {isSaving ? 'Saving...' : 'Save'}
+                    </button>
                     <button onClick={() => setIsEditing(false)} className="bg-gray-700 px-3 py-1 rounded text-xs hover:bg-gray-600">Cancel</button>
                 </div>
             ) : (

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MOCK_VIDEOS } from '../constants';
 import { EmptyView } from './StateViews';
-import { fetchVideos } from '../services/firebase';
+import { fetchVideos, auth, db, doc, setDoc, collection, getDocs } from '../services/firebase';
 import { Video } from '../types';
 
 interface ShortsFeedProps {
@@ -15,19 +15,49 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({ isUltra = false, onBack }) => {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [shorts, setShorts] = useState<Video[]>([]);
+  const [likes, setLikes] = useState<Record<string, boolean>>({});
+  const lastTap = useRef<number>(0);
 
   useEffect(() => {
     const loadShorts = async () => {
         const vids = await fetchVideos();
-        // Filter for short content or just shuffle/slice
-        setShorts(vids.length > 0 ? vids : MOCK_VIDEOS);
+        // Prefer vertical videos or short duration, for now just shuffle
+        setShorts(vids.length > 0 ? vids.sort(() => 0.5 - Math.random()) : MOCK_VIDEOS);
+
+        // Load likes if user is logged in
+        if (auth.currentUser) {
+            const likesRef = collection(db, "users", auth.currentUser.uid, "likes");
+            const likesSnap = await getDocs(likesRef);
+            const loadedLikes: Record<string, boolean> = {};
+            likesSnap.forEach(doc => { loadedLikes[doc.id] = true; });
+            setLikes(loadedLikes);
+        }
     };
     loadShorts();
   }, []);
 
-  // Simple like state logic (local only)
-  const [likes, setLikes] = useState<Record<string, boolean>>({});
-  const toggleLike = (id: string) => setLikes(prev => ({...prev, [id]: !prev[id]}));
+  const toggleLike = async (id: string) => {
+     const isLiked = !likes[id];
+     setLikes(prev => ({...prev, [id]: isLiked}));
+
+     if (auth.currentUser) {
+         const likeRef = doc(db, "users", auth.currentUser.uid, "likes", id);
+         if (isLiked) {
+             await setDoc(likeRef, { likedAt: new Date() });
+         } else {
+             // In a real app we might deleteDoc, but for now just toggle state
+             await setDoc(likeRef, { likedAt: null }); // Soft delete or actual delete
+         }
+     }
+  };
+
+  const handleDoubleTap = (id: string) => {
+      const now = Date.now();
+      if (now - lastTap.current < 300) {
+          if (!likes[id]) toggleLike(id);
+      }
+      lastTap.current = now;
+  };
 
   // Use IntersectionObserver to detect which video is in view
   useEffect(() => {
@@ -98,11 +128,16 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({ isUltra = false, onBack }) => {
          // Defensive safe string for author
          const safeAuthor = String(video.author || 'Unknown');
          
+         // Video Source Logic
+         const isIframe = video.embedUrl.includes('<iframe');
+         const videoSrc = (video.embedUrl && !isIframe && video.embedUrl.startsWith('http')) ? video.embedUrl : "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
          return (
            <div 
              key={video.id} 
              data-id={video.id}
              className="short-item h-full w-full snap-start relative flex items-center justify-center bg-gray-900 shrink-0"
+             onClick={() => handleDoubleTap(video.id)}
            >
               {/* Blurred Background */}
               <img 
@@ -114,12 +149,13 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({ isUltra = false, onBack }) => {
               {/* Short Container */}
               <div className={`relative h-full aspect-[9/16] bg-black max-w-md w-full overflow-hidden shadow-2xl border-x border-gray-800 flex flex-col justify-center`}>
                  {isPlaying ? (
-                     // Simulating a playing video with an image for now, but in a real app this would be <video>
-                     // We use a slight zoom effect to simulate "alive" state
-                     <img 
-                       src={video.thumbnail} 
-                       className="w-full h-full object-cover animate-in fade-in zoom-in-105 duration-[10s]" 
-                       alt="Playing content"
+                     <video
+                       src={videoSrc}
+                       className="w-full h-full object-cover animate-in fade-in"
+                       autoPlay
+                       loop
+                       muted={isMuted}
+                       playsInline
                      />
                  ) : (
                      <img 
@@ -129,7 +165,7 @@ const ShortsFeed: React.FC<ShortsFeedProps> = ({ isUltra = false, onBack }) => {
                      />
                  )}
                  
-                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80"></div>
+                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80 pointer-events-none"></div>
                  
                  {/* Play/Pause Overlay */}
                  {!isPlaying && (
