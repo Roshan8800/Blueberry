@@ -94,12 +94,12 @@ const AuthPages: React.FC<AuthPagesProps> = ({ view, setView, onUltraLogin, onLo
               {isLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Sign In'}
             </button>
             
-            {/* Ultra Demo Button */}
-            {onUltraLogin && (
+            {/* Ultra Demo Button - Disabled for Production */}
+            {/* {onUltraLogin && (
                 <button type="button" onClick={onUltraLogin} className="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-900/40 transition-all mt-4 border border-indigo-400/30">
                    <i className="fa-solid fa-atom mr-2"></i> Demo: Sign in as Ultra
                 </button>
-            )}
+            )} */}
           </form>
           <div className="mt-6 text-center text-sm text-gray-500">
             Don't have an account? <button onClick={() => setView(AppView.REGISTER)} className="text-white font-bold hover:underline">Sign Up</button>

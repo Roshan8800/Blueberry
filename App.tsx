@@ -23,6 +23,7 @@ import StudioPro from './components/StudioPro';
 import VipSupport from './components/VipSupport';
 import PricingPage from './components/PricingPage';
 import HelpPage from './components/HelpPage';
+import UploadPage from './components/UploadPage';
 import { EmptyView, ErrorView } from './components/StateViews';
 import { MOCK_VIDEOS, DEMO_ADMIN, DEVELOPERS, MOCK_MODELS, MOCK_POSTS, DEMO_BLUEBERRY_USER } from './constants';
 import { Video, AppView, User, Model, UserRole } from './types';
@@ -83,15 +84,10 @@ const App: React.FC = () => {
 
       if (dbVideos.length > 0) {
         setAllVideos(dbVideos);
-      } else {
-         // Fallback if fetch failed
-         setAllVideos(MOCK_VIDEOS);
       }
 
       if (dbModels.length > 0) {
         setAllModels(dbModels);
-      } else {
-        setAllModels(MOCK_MODELS);
       }
 
       setIsLoadingVideos(false);
@@ -800,20 +796,7 @@ const App: React.FC = () => {
         );
       
       case AppView.UPLOAD:
-        return (
-            <div className="animate-in fade-in duration-300">
-               <div className="p-8 max-w-4xl mx-auto text-center">
-                   <div className="border-2 border-dashed border-gray-700 rounded-3xl p-16 bg-dark-card/50">
-                      <i className="fa-solid fa-cloud-arrow-up text-6xl text-gray-600 mb-6"></i>
-                      <h2 className="text-3xl font-bold text-white mb-4">Upload Content</h2>
-                      <p className="text-gray-400 mb-8">Drag and drop video files to upload, or click to browse.</p>
-                      <button className={`${isUltra ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-brand-600 hover:bg-brand-500'} text-white px-8 py-3 rounded-full font-bold transition-colors shadow-lg`}>
-                         Select Files
-                      </button>
-                   </div>
-               </div>
-            </div>
-        );
+        return <UploadPage />;
         
       case AppView.PROFILE:
         return currentUser ? <UserProfile
