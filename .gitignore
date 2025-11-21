@@ -2,10 +2,6 @@
 # Firebase service account key
 serviceAccountKey.json
 
-# Large data files
-pornhub.com-db.zip
-extracted_videos/pornhub.com-db.csv
-
 # Node modules
 node_modules/
 
