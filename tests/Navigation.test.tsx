@@ -2,30 +2,21 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
-import * as matchers from '@testing-library/jest-dom/matchers';
-
-// Extend expect with jest-dom matchers
-expect.extend(matchers);
-
-// Mock Firebase BEFORE importing App
-vi.mock('../services/firebase', () => ({
-  analytics: null,
-  logEvent: vi.fn(),
-  fetchVideos: vi.fn(async () => []),
-}));
-
 import App from '../App';
 
-// Mock window.scrollTo
-Object.defineProperty(window, 'scrollTo', {
-  value: vi.fn(),
-  writable: true
-});
+// Mock Firebase specific to this test if needed, or rely on setup.ts.
+// However, Navigation test has specific requirements for fetchVideos returning empty initially or specifically
+// to ensure "Start Your Free Trial" (Landing) vs "Welcome" (Home) logic works.
+// The setup.ts mock returns empty arrays, which is fine.
+
+// We DO need to override the history behavior for this specific test suite as it's testing the history stack.
+// The setup.ts mocks window.scrollTo, but here we need deep history mocking.
 
 describe('App Navigation History Bug', () => {
   let originalPushState: any;
   let originalReplaceState: any;
   let originalBack: any;
+  let originalForward: any;
 
   const historyStack: any[] = [];
   let currentIndex = -1;
@@ -40,6 +31,7 @@ describe('App Navigation History Bug', () => {
     originalPushState = window.history.pushState;
     originalReplaceState = window.history.replaceState;
     originalBack = window.history.back;
+    originalForward = (window.history as any).forward;
 
     // Mock history.state getter
     Object.defineProperty(window.history, 'state', {
@@ -84,13 +76,14 @@ describe('App Navigation History Bug', () => {
     window.history.pushState = originalPushState;
     window.history.replaceState = originalReplaceState;
     window.history.back = originalBack;
+    (window.history as any).forward = originalForward;
     vi.clearAllMocks();
   });
 
   it('correctly restores internal history after Browser Back and Forward', async () => {
     render(<App />);
 
-    // 0. Handle Age Verification
+    // 0. Handle Age Verification (if it appears)
     const ageButton = screen.queryByText(/I AM 18 OR OLDER/i);
     if (ageButton) {
       fireEvent.click(ageButton);
@@ -131,7 +124,6 @@ describe('App Navigation History Bug', () => {
 
     // 6. Verify clicking Back works
     fireEvent.click(backButton!);
-    // Since handleBack calls history.back(), and our mock dispatches popstate, it should go back.
 
     await waitFor(() => expect(screen.getByText(/Start Your Free Trial/i)).toBeInTheDocument());
   });
