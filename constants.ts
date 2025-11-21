@@ -27,96 +27,118 @@ export const MOCK_MODELS: Model[] = [
   { id: 'm8', name: 'Violet Myers', thumbnail: 'https://picsum.photos/seed/violet/200/200', videoCount: 98, rank: 8 },
 ];
 
+// Duration is in milliseconds for "proper" metadata handling, but supports string fallback
 export const MOCK_VIDEOS: Video[] = [
   {
     id: 'v1',
     title: 'Cinematic Nightlife Experience',
     thumbnail: 'https://picsum.photos/seed/night1/600/400',
-    duration: '12:45',
+    duration: 765000, // 12:45
     views: '1.2M',
     author: 'PlayNite Originals',
+    performers: ['Eva Elfie'],
     category: 'Trending',
     embedUrl: 'https://www.youtube.com/embed/LXb3EKWsInQ', 
     description: 'An exclusive look into the premium nightlife experience.',
     rating: 98,
+    likes: 15400,
+    dislikes: 230,
     tags: ['night', 'party', 'exclusive']
   },
   {
     id: 'v2',
     title: 'Exclusive Model Showcase',
     thumbnail: 'https://picsum.photos/seed/model1/600/400',
-    duration: '08:30',
+    duration: 510000, // 08:30
     views: '850K',
     author: 'Studio X',
+    performers: ['Angela White', 'Abella Danger'],
     category: 'Premium',
     embedUrl: 'https://www.youtube.com/embed/LXb3EKWsInQ',
     description: 'High fashion and glamour showcase featuring top talent.',
     rating: 95,
+    likes: 9800,
+    dislikes: 150,
     tags: ['fashion', 'glamour', 'model']
   },
   {
     id: 'v3',
     title: 'Virtual Reality Lounge',
     thumbnail: 'https://picsum.photos/seed/vr1/600/400',
-    duration: '25:00',
+    duration: 1500000, // 25:00
     views: '2.1M',
     author: 'VR Tech',
+    performers: [],
     category: 'VR Experience',
     embedUrl: 'https://www.youtube.com/embed/LXb3EKWsInQ',
     description: 'Immersive 180-degree experience.',
     rating: 99,
+    likes: 25000,
+    dislikes: 50,
     tags: ['vr', 'immersive', '3d']
   },
   {
     id: 'v4',
     title: 'Private Dance Collection',
     thumbnail: 'https://picsum.photos/seed/dance/600/400',
-    duration: '15:20',
+    duration: 920000, // 15:20
     views: '3.4M',
     author: 'DanceElite',
+    performers: ['Mia Malkova'],
     category: 'Top Rated',
     embedUrl: 'https://www.youtube.com/embed/LXb3EKWsInQ',
     description: 'Contemporary artistic dance performance.',
     rating: 92,
+    likes: 18900,
+    dislikes: 400,
     tags: ['dance', 'art', 'performance']
   },
   {
     id: 'v5',
     title: 'Behind The Scenes: Vol 4',
     thumbnail: 'https://picsum.photos/seed/bts/600/400',
-    duration: '45:10',
+    duration: 2710000, // 45:10
     views: '500K',
     author: 'ProductionHouse',
+    performers: [],
     category: 'New Arrivals',
     embedUrl: 'https://www.youtube.com/embed/LXb3EKWsInQ',
     description: 'Uncensored access to the making of our top films.',
     rating: 88,
+    likes: 4500,
+    dislikes: 120,
     tags: ['bts', 'making of', 'raw']
   },
   {
     id: 'v6',
     title: 'Late Night Vibes',
     thumbnail: 'https://picsum.photos/seed/vibes/600/400',
-    duration: '10:00',
+    duration: 600000, // 10:00
     views: '1.1M',
     author: 'VibeCheck',
+    performers: ['Sweet Sweet'],
     category: 'Trending',
     embedUrl: 'https://www.youtube.com/embed/LXb3EKWsInQ',
     description: 'Relaxing and sensual atmosphere.',
     rating: 94,
+    likes: 12000,
+    dislikes: 80,
     tags: ['chill', 'vibe', 'music']
   },
   {
     id: 'v7',
     title: 'Live: Bedroom Cam 01',
     thumbnail: 'https://picsum.photos/seed/cam1/600/400',
-    duration: 'LIVE',
+    duration: 'LIVE', // Special case
     views: '15k',
     author: 'CamModel_xx',
+    performers: ['CamModel_xx'],
     category: 'Live Cams',
     embedUrl: 'https://www.youtube.com/embed/LXb3EKWsInQ',
     description: 'Live streaming now.',
     rating: 96,
+    likes: 500,
+    dislikes: 10,
     tags: ['live', 'webcam', 'chat']
   },
   {
@@ -126,10 +148,13 @@ export const MOCK_VIDEOS: Video[] = [
     duration: 'LIVE',
     views: '22k',
     author: 'SweetCheeks',
+    performers: ['SweetCheeks'],
     category: 'Live Cams',
     embedUrl: 'https://www.youtube.com/embed/LXb3EKWsInQ',
     description: 'Join the private room now.',
     rating: 98,
+    likes: 800,
+    dislikes: 5,
     tags: ['live', 'premium', 'show']
   }
 ];

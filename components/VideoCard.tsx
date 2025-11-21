@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Video } from '../types';
+import { formatDuration } from '../utils/time';
 
 interface VideoCardProps {
   video: Video;
@@ -197,7 +198,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
              </div>
           ) : (
              <span className="bg-black/70 backdrop-blur-md text-white text-xs font-bold px-1.5 py-0.5 rounded border border-white/10">
-              {video.duration}
+              {formatDuration(video.duration)}
              </span>
           )}
         </div>

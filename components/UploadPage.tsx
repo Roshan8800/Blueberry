@@ -6,7 +6,6 @@ const UploadPage: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,14 +47,17 @@ const UploadPage: React.FC = () => {
           await addDoc(collection(db, "videos"), {
               title: title || file.name,
               description: description,
-              embedUrl: url, // For hosted videos
-              thumbnail: "https://picsum.photos/seed/upload/600/400", // Placeholder thumb for now
-              views: 0,
+              embedUrl: url,
+              thumbnail: "https://picsum.photos/seed/upload/600/400",
+              views: "0",
               rating: 0,
-              duration: "00:00", // Needs processing to get real duration
+              likes: 0,
+              dislikes: 0,
+              duration: 0, // Default 0ms, processed later
+              performers: [],
               tags: ['upload', 'new'],
               category: "New Arrivals",
-              author: "You", // Ideally from Auth context
+              author: "You",
               createdAt: new Date()
           });
 

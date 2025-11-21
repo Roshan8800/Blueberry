@@ -11,13 +11,16 @@ export interface Video {
   id: string;
   title: string;
   thumbnail: string;
-  duration: string;
+  duration: string | number; // Can be "MM:SS" or milliseconds
   views: string;
   author: string;
+  performers?: string[]; // List of performers/pornstars
   category: string;
-  embedUrl: string; // In a real app, this would be the HLS stream or Iframe source
+  embedUrl: string; // HLS stream or Iframe source
   description: string;
-  rating: number;
+  rating: number; // 0-100
+  likes?: number; // Count
+  dislikes?: number; // Count
   tags: string[];
 }
 

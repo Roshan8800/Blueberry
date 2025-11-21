@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Video, User, AppView } from '../types';
 import { MOCK_VIDEOS } from '../constants';
 import VideoCard from './VideoCard';
+import { formatDuration } from '../utils/time';
 
 interface PlayerProps {
   video: Video;
@@ -541,7 +542,9 @@ const Player: React.FC<PlayerProps> = ({
                                    <input type="range" min="0" max="1" step="0.05" value={volume} onChange={(e) => changeVolume(Number(e.target.value))} className={`w-0 group-hover/vol:w-20 transition-all duration-300 h-1 rounded-lg appearance-none ${sliderClass}`} />
                                 </div>
 
-                                <span className="text-xs text-gray-300 font-mono">{Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')} / {Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2, '0')}</span>
+                                <span className="text-xs text-gray-300 font-mono">
+                                  {formatDuration(currentTime * 1000)} / {formatDuration(duration * 1000)}
+                                </span>
                             </div>
 
                             {/* Right Controls */}
@@ -727,7 +730,7 @@ const Player: React.FC<PlayerProps> = ({
                  {/* Compact Horizontal Card Layout for Sidebar */}
                  <div className="w-40 h-24 rounded-lg overflow-hidden bg-gray-900 relative flex-shrink-0 border border-transparent group-hover:border-gray-600 transition-colors">
                     <img src={vid.thumbnail} className="w-full h-full object-cover" />
-                    <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 rounded font-mono">{vid.duration}</span>
+                    <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 rounded font-mono">{formatDuration(vid.duration)}</span>
                     {vid.category === 'Premium' && <div className="absolute top-1 left-1 bg-yellow-500 text-black text-[8px] font-bold px-1 rounded">PRO</div>}
                  </div>
                  <div className="flex flex-col gap-1 min-w-0 pt-0.5">
