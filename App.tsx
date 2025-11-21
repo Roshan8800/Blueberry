@@ -20,6 +20,8 @@ import LivePage from './components/LivePage';
 import UploadPage from './components/UploadPage';
 import LandingPage from './components/LandingPage';
 import UltraAnalytics from './components/UltraAnalytics';
+import UserAnalytics from './components/UserAnalytics';
+import CreatorAnalytics from './components/CreatorAnalytics';
 import StudioPro from './components/StudioPro';
 import VipSupport from './components/VipSupport';
 import PricingPage from './components/PricingPage';

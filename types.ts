@@ -176,6 +176,71 @@ export interface Tip {
   createdAt: Date;
 }
 
+// Analytics Interfaces
+export interface UserAnalytics {
+  userId: string;
+  totalWatchTime: number; // in minutes
+  videosWatched: number;
+  favoriteCategories: string[];
+  engagementRate: number; // percentage
+  lastActive: Date;
+  watchHistory: WatchHistoryItem[];
+}
+
+export interface WatchHistoryItem {
+  videoId: string;
+  watchedAt: Date;
+  watchDuration: number; // in seconds
+  completed: boolean;
+}
+
+export interface CreatorAnalytics {
+  creatorId: string;
+  totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  revenue: {
+    total: number;
+    fromSubscriptions: number;
+    fromTips: number;
+    fromAds: number;
+  };
+  topVideos: {
+    videoId: string;
+    title: string;
+    views: number;
+    likes: number;
+  }[];
+  demographics: {
+    ageGroups: { [key: string]: number };
+    genders: { [key: string]: number };
+    locations: { [key: string]: number };
+  };
+  engagementOverTime: {
+    date: string;
+    views: number;
+    likes: number;
+    comments: number;
+  }[];
+}
+
+export interface AdminAnalytics {
+  totalUsers: number;
+  activeUsers: number;
+  totalVideos: number;
+  totalViews: number;
+  totalRevenue: number;
+  userGrowth: { date: string; count: number }[];
+  revenueGrowth: { date: string; amount: number }[];
+  topCategories: { category: string; views: number }[];
+  platformHealth: {
+    uptime: number;
+    errorRate: number;
+    avgLoadTime: number;
+  };
+}
+
 export interface LiveChatMessage {
   id: string;
   userId: string;

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Video, User } from '../types';
+import type { AdminAnalytics } from '../types';
 import { generateVideoDescription } from '../services/geminiService';
-import { fetchVideos, fetchUsers, deleteDoc, doc, db, addDoc, collection } from '../services/firebase';
+import { fetchVideos, fetchUsers, deleteDoc, doc, db, addDoc, collection, fetchAdminAnalytics } from '../services/firebase';
 
 const AdminPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'VIDEOS' | 'USERS'>('VIDEOS');
+  const [activeTab, setActiveTab] = useState<'VIDEOS' | 'USERS' | 'ANALYTICS'>('VIDEOS');
   const [videos, setVideos] = useState<Video[]>([]);
   const [users, setUsers] = useState<any[]>([]); // Simplified user type
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -18,6 +20,8 @@ const AdminPanel: React.FC = () => {
         setVideos(vidsResult.success ? vidsResult.data || [] : []);
         const usrsResult = await fetchUsers();
         setUsers(usrsResult.success ? usrsResult.data || [] : []);
+        const analyticsResult = await fetchAdminAnalytics();
+        setAnalytics(analyticsResult.success ? analyticsResult.data || null : null);
     };
     load();
   }, []);
@@ -92,45 +96,139 @@ const AdminPanel: React.FC = () => {
           <p className="text-gray-400 text-sm mt-1">Overview of content, users, and performance.</p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <button
-            onClick={() => setActiveTab(activeTab === 'VIDEOS' ? 'USERS' : 'VIDEOS')}
-            className={`flex-1 md:flex-none border px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'USERS' ? 'bg-white text-black border-white' : 'bg-dark-card border-gray-700 text-white hover:border-gray-500'}`}
-          >
-            <i className={`fa-solid ${activeTab === 'USERS' ? 'fa-video' : 'fa-users'} mr-2 ${activeTab === 'USERS' ? 'text-black' : 'text-gray-400'}`}></i>
-            {activeTab === 'VIDEOS' ? 'Manage Users' : 'Manage Videos'}
-          </button>
-        </div>
+           <button
+             onClick={() => setActiveTab(activeTab === 'VIDEOS' ? 'USERS' : activeTab === 'USERS' ? 'ANALYTICS' : 'VIDEOS')}
+             className={`flex-1 md:flex-none border px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'ANALYTICS' ? 'bg-white text-black border-white' : 'bg-dark-card border-gray-700 text-white hover:border-gray-500'}`}
+           >
+             <i className={`fa-solid ${activeTab === 'ANALYTICS' ? 'fa-chart-line' : activeTab === 'USERS' ? 'fa-video' : 'fa-users'} mr-2 ${activeTab === 'ANALYTICS' ? 'text-black' : 'text-gray-400'}`}></i>
+             {activeTab === 'VIDEOS' ? 'Manage Users' : activeTab === 'USERS' ? 'View Analytics' : 'Manage Videos'}
+           </button>
+         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total Library', val: videos.length, icon: 'fa-film', color: 'text-brand-500', bg: 'bg-brand-900/20' },
-          { label: 'Total Views', val: '45.2M', icon: 'fa-eye', color: 'text-blue-400', bg: 'bg-blue-900/20' },
-          { label: 'Premium Users', val: '12.5K', icon: 'fa-crown', color: 'text-yellow-400', bg: 'bg-yellow-900/20' },
-          { label: 'Mo. Revenue', val: '$48,240', icon: 'fa-wallet', color: 'text-emerald-400', bg: 'bg-emerald-900/20' },
-        ].map((stat, idx) => (
-          <div key={idx} className="bg-dark-card p-5 rounded-2xl border border-gray-800/60 relative overflow-hidden group hover:border-gray-700 transition-colors">
-             <div className="relative z-10">
-               <div className="flex justify-between items-start mb-2">
-                 <div className={`p-2 rounded-lg ${stat.bg}`}>
-                    <i className={`fa-solid ${stat.icon} ${stat.color} text-lg`}></i>
-                 </div>
-                 <span className="text-xs font-semibold text-green-500 flex items-center gap-1 bg-green-900/20 px-2 py-1 rounded">
-                    +2.4% <i className="fa-solid fa-arrow-trend-up"></i>
-                 </span>
-               </div>
-               <p className="text-2xl font-bold text-white mt-2">{stat.val}</p>
-               <p className="text-gray-500 text-xs font-medium uppercase tracking-wider mt-1">{stat.label}</p>
+      {activeTab !== 'ANALYTICS' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[
+            { label: 'Total Library', val: videos.length, icon: 'fa-film', color: 'text-brand-500', bg: 'bg-brand-900/20' },
+            { label: 'Total Views', val: '45.2M', icon: 'fa-eye', color: 'text-blue-400', bg: 'bg-blue-900/20' },
+            { label: 'Premium Users', val: '12.5K', icon: 'fa-crown', color: 'text-yellow-400', bg: 'bg-yellow-900/20' },
+            { label: 'Mo. Revenue', val: '$48,240', icon: 'fa-wallet', color: 'text-emerald-400', bg: 'bg-emerald-900/20' },
+          ].map((stat, idx) => (
+            <div key={idx} className="bg-dark-card p-5 rounded-2xl border border-gray-800/60 relative overflow-hidden group hover:border-gray-700 transition-colors">
+               <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className={`p-2 rounded-lg ${stat.bg}`}>
+                       <i className={`fa-solid ${stat.icon} ${stat.color} text-lg`}></i>
+                    </div>
+                    <span className="text-xs font-semibold text-green-500 flex items-center gap-1 bg-green-900/20 px-2 py-1 rounded">
+                       +2.4% <i className="fa-solid fa-arrow-trend-up"></i>
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold text-white mt-2">{stat.val}</p>
+                  <p className="text-gray-500 text-xs font-medium uppercase tracking-wider mt-1">{stat.label}</p>
+                </div>
+                {/* Decorative glow */}
+                <div className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full opacity-20 blur-2xl ${stat.bg}`}></div>
              </div>
-             {/* Decorative glow */}
-             <div className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full opacity-20 blur-2xl ${stat.bg}`}></div>
+          ))}
+        </div>
+      )}
+
+      {/* Analytics Dashboard */}
+      {activeTab === 'ANALYTICS' && analytics && (
+        <div className="space-y-8">
+          {/* Platform Overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Users', val: analytics.totalUsers.toLocaleString(), icon: 'fa-users', color: 'text-blue-400', bg: 'bg-blue-900/20' },
+              { label: 'Active Users', val: analytics.activeUsers.toLocaleString(), icon: 'fa-user-check', color: 'text-green-400', bg: 'bg-green-900/20' },
+              { label: 'Total Videos', val: analytics.totalVideos.toLocaleString(), icon: 'fa-film', color: 'text-purple-400', bg: 'bg-purple-900/20' },
+              { label: 'Total Views', val: analytics.totalViews.toLocaleString(), icon: 'fa-eye', color: 'text-orange-400', bg: 'bg-orange-900/20' },
+            ].map((stat, idx) => (
+              <div key={idx} className="bg-dark-card p-5 rounded-2xl border border-gray-800/60 relative overflow-hidden group hover:border-gray-700 transition-colors">
+                 <div className="relative z-10">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className={`p-2 rounded-lg ${stat.bg}`}>
+                         <i className={`fa-solid ${stat.icon} ${stat.color} text-lg`}></i>
+                      </div>
+                      <span className="text-xs font-semibold text-green-500 flex items-center gap-1 bg-green-900/20 px-2 py-1 rounded">
+                         +5.2% <i className="fa-solid fa-arrow-trend-up"></i>
+                      </span>
+                    </div>
+                    <p className="text-2xl font-bold text-white mt-2">{stat.val}</p>
+                    <p className="text-gray-500 text-xs font-medium uppercase tracking-wider mt-1">{stat.label}</p>
+                  </div>
+                  <div className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full opacity-20 blur-2xl ${stat.bg}`}></div>
+               </div>
+            ))}
           </div>
-        ))}
-      </div>
+
+          {/* Revenue and Growth */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-dark-card p-6 rounded-xl border border-gray-800">
+              <h3 className="text-xl font-bold text-white mb-4">Revenue Overview</h3>
+              <div className="text-center">
+                <p className="text-4xl font-bold text-green-400 mb-2">${analytics.totalRevenue.toLocaleString()}</p>
+                <p className="text-gray-400">Total Platform Revenue</p>
+              </div>
+              <div className="mt-6 space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">This Month</span>
+                  <span className="text-white font-medium">${Math.floor(analytics.totalRevenue * 0.1).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Last Month</span>
+                  <span className="text-white font-medium">${Math.floor(analytics.totalRevenue * 0.09).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-dark-card p-6 rounded-xl border border-gray-800">
+              <h3 className="text-xl font-bold text-white mb-4">Platform Health</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Uptime</span>
+                  <span className="text-green-400 font-medium">{analytics.platformHealth.uptime}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Error Rate</span>
+                  <span className="text-red-400 font-medium">{analytics.platformHealth.errorRate}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Avg Load Time</span>
+                  <span className="text-blue-400 font-medium">{analytics.platformHealth.avgLoadTime}s</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Categories */}
+          <div className="bg-dark-card p-6 rounded-xl border border-gray-800">
+            <h3 className="text-xl font-bold text-white mb-4">Top Categories by Views</h3>
+            <div className="space-y-3">
+              {analytics.topCategories.map((category, index) => (
+                <div key={category.category} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-gray-400 w-6">#{index + 1}</span>
+                    <span className="text-white">{category.category}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-brand-500" style={{ width: `${(category.views / analytics.topCategories[0].views) * 100}%` }}></div>
+                    </div>
+                    <span className="text-gray-400 text-sm w-16 text-right">{category.views.toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content Table Section */}
-      <div className="bg-dark-card rounded-2xl border border-gray-800 overflow-hidden flex flex-col">
+      {activeTab !== 'ANALYTICS' && (
+        <div className="bg-dark-card rounded-2xl border border-gray-800 overflow-hidden flex flex-col">
         <div className="p-5 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4 bg-dark-surface/50">
           <div className="flex items-center gap-3">
             <h2 className="font-bold text-white text-lg">{activeTab === 'VIDEOS' ? 'Video Library' : 'User Directory'}</h2>
@@ -321,6 +419,7 @@ const AdminPanel: React.FC = () => {
            </div>
         </div>
       </div>
+      )}
 
     </div>
   );

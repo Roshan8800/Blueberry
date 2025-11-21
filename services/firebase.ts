@@ -3,7 +3,7 @@ import { getAnalytics, logEvent } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber, updateProfile, deleteUser as firebaseDeleteUser } from "firebase/auth";
 import { getFirestore, collection, getDocs, doc, setDoc, addDoc, deleteDoc, query, orderBy, onSnapshot, updateDoc, getDoc, where, limit, startAfter, Timestamp, increment } from "firebase/firestore";
 import { getStorage, ref } from "firebase/storage";
-import { Video, Model, Playlist, CommunityPost, CommunityComment, UserFollow, Message, Notification, User } from "../types";
+import { Video, Model, Playlist, CommunityPost, CommunityComment, UserFollow, Message, Notification, User, UserAnalytics, CreatorAnalytics, AdminAnalytics } from "../types";
 import { MOCK_VIDEOS, MOCK_MODELS, MOCK_PLAYLISTS, MOCK_POSTS, DEMO_ADMIN, DEMO_BLUEBERRY_USER } from "../constants";
 
 const firebaseConfig = {
@@ -857,6 +857,98 @@ export const disable2FA = async (userId: string): Promise<Result<boolean>> => {
     return { success: true, data: true };
   } catch (error) {
     return { success: false, error: `Failed to disable 2FA: ${error}` };
+  }
+};
+
+// Analytics Functions
+export const fetchUserAnalytics = async (userId: string): Promise<Result<UserAnalytics>> => {
+  try {
+    // Mock analytics data - in production, this would aggregate from watch history, etc.
+    const analytics: UserAnalytics = {
+      userId,
+      totalWatchTime: Math.floor(Math.random() * 1000) + 100, // 100-1100 minutes
+      videosWatched: Math.floor(Math.random() * 200) + 10,
+      favoriteCategories: ['Adult', 'Amateur', 'HD'],
+      engagementRate: Math.floor(Math.random() * 50) + 20, // 20-70%
+      lastActive: new Date(),
+      watchHistory: [] // Would be populated from actual watch history
+    };
+    return { success: true, data: analytics };
+  } catch (error) {
+    return { success: false, error: `Failed to fetch user analytics: ${error}` };
+  }
+};
+
+export const fetchCreatorAnalytics = async (creatorId: string): Promise<Result<CreatorAnalytics>> => {
+  try {
+    // Mock creator analytics
+    const analytics: CreatorAnalytics = {
+      creatorId,
+      totalViews: Math.floor(Math.random() * 100000) + 10000,
+      totalLikes: Math.floor(Math.random() * 5000) + 500,
+      totalComments: Math.floor(Math.random() * 1000) + 100,
+      totalShares: Math.floor(Math.random() * 500) + 50,
+      revenue: {
+        total: Math.floor(Math.random() * 5000) + 1000,
+        fromSubscriptions: Math.floor(Math.random() * 3000) + 500,
+        fromTips: Math.floor(Math.random() * 1000) + 100,
+        fromAds: Math.floor(Math.random() * 500) + 50
+      },
+      topVideos: [
+        { videoId: '1', title: 'Popular Video 1', views: 5000, likes: 200 },
+        { videoId: '2', title: 'Popular Video 2', views: 4500, likes: 180 },
+        { videoId: '3', title: 'Popular Video 3', views: 4000, likes: 160 }
+      ],
+      demographics: {
+        ageGroups: { '18-24': 30, '25-34': 40, '35-44': 20, '45+': 10 },
+        genders: { male: 60, female: 35, other: 5 },
+        locations: { 'US': 40, 'EU': 30, 'Asia': 20, 'Other': 10 }
+      },
+      engagementOverTime: [
+        { date: '2024-11-01', views: 1000, likes: 50, comments: 20 },
+        { date: '2024-11-02', views: 1200, likes: 60, comments: 25 },
+        { date: '2024-11-03', views: 1100, likes: 55, comments: 22 }
+      ]
+    };
+    return { success: true, data: analytics };
+  } catch (error) {
+    return { success: false, error: `Failed to fetch creator analytics: ${error}` };
+  }
+};
+
+export const fetchAdminAnalytics = async (): Promise<Result<AdminAnalytics>> => {
+  try {
+    // Mock admin analytics
+    const analytics: AdminAnalytics = {
+      totalUsers: Math.floor(Math.random() * 10000) + 5000,
+      activeUsers: Math.floor(Math.random() * 2000) + 1000,
+      totalVideos: Math.floor(Math.random() * 5000) + 1000,
+      totalViews: Math.floor(Math.random() * 1000000) + 500000,
+      totalRevenue: Math.floor(Math.random() * 50000) + 10000,
+      userGrowth: [
+        { date: '2024-11-01', count: 100 },
+        { date: '2024-11-02', count: 120 },
+        { date: '2024-11-03', count: 110 }
+      ],
+      revenueGrowth: [
+        { date: '2024-11-01', amount: 1000 },
+        { date: '2024-11-02', amount: 1200 },
+        { date: '2024-11-03', amount: 1100 }
+      ],
+      topCategories: [
+        { category: 'Adult', views: 200000 },
+        { category: 'Amateur', views: 150000 },
+        { category: 'HD', views: 100000 }
+      ],
+      platformHealth: {
+        uptime: 99.9,
+        errorRate: 0.1,
+        avgLoadTime: 1.2
+      }
+    };
+    return { success: true, data: analytics };
+  } catch (error) {
+    return { success: false, error: `Failed to fetch admin analytics: ${error}` };
   }
 };
 

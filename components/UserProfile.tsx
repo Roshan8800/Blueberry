@@ -77,8 +77,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, setView, onUpdateUser, 
            {/* Pattern Overlay */}
           <div className="absolute inset-0 opacity-20" style={{backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
           
-          <div className="absolute top-4 right-4">
-             <button 
+          <div className="absolute top-4 right-4 flex gap-2">
+             <button
+                onClick={() => setView(AppView.ANALYTICS)}
+                className="bg-black/40 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm hover:bg-black/60 transition-colors border border-white/10 flex items-center gap-2"
+             >
+               <i className="fa-solid fa-chart-line"></i> Analytics
+             </button>
+             <button
                 onClick={() => setView(AppView.SETTINGS)}
                 className="bg-black/40 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm hover:bg-black/60 transition-colors border border-white/10 flex items-center gap-2"
              >
